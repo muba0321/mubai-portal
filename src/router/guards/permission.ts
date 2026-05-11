@@ -17,9 +17,16 @@ export function setupPermissionGuard() {
     try {
       const userStore = useUserStore();
 
-      // 无后端时设置默认 token，跳过登录
-      if (!AuthStorage.getAccessToken()) {
-        AuthStorage.setTokens("mock-token", "mock-refresh", false);
+      // 无后端时设置默认 token（有效 JWT 格式），跳过登录
+      // 如果已有 token 但格式不对（不是标准 JWT 三段式），也重置为 mock token
+      const token = AuthStorage.getAccessToken();
+      const isValidJwt = token && token.split(".").length === 3;
+      if (!token || !isValidJwt) {
+        const mockJwt =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhZG1pbiIsIm5pY2tuYW1lIjoiQWRtaW4iLCJpYXQiOjE3NDY5NDA4MDAsImV4cCI6MjA2MjMwMDgwMH0.mock-signature";
+        const mockRefresh =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NDY5NDA4MDAsImV4cCI6MjA2MjMwMDgwMH0.mock-refresh-signature";
+        AuthStorage.setTokens(mockJwt, mockRefresh, false);
         userStore.userInfo = {
           userId: 1,
           username: "admin",

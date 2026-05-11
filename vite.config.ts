@@ -1,10 +1,18 @@
 import { resolve } from "path";
+import { readFileSync } from "fs";
 import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import mockDevServerPlugin from "vite-plugin-mock-dev-server";
 import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import UnoCSS from "unocss/vite";
+import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
+
+const pkg = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf-8"));
+const __APP_INFO__ = {
+  pkg: { name: pkg.name, version: pkg.version },
+  lastBuildTime: new Date().toLocaleString(),
+};
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
@@ -15,18 +23,27 @@ export default defineConfig(({ mode }) => {
         mockDirs: resolve(process.cwd(), "mock"),
       }),
       AutoImport({
-        imports: ["vue", "vue-router", "pinia"],
+        imports: ["vue", "vue-router", "pinia", "@vueuse/core", "vue-i18n"],
         dts: "src/types/auto-imports.d.ts",
+        resolvers: [ElementPlusResolver()],
       }),
       Components({
         dts: "src/types/components.d.ts",
         dirs: ["src/components"],
+        resolvers: [ElementPlusResolver()],
       }),
       UnoCSS(),
     ],
     resolve: {
       alias: {
         "@": resolve(process.cwd(), "src"),
+      },
+    },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: `@use "@/styles/variables" as *;`,
+        },
       },
     },
     server: {
@@ -40,8 +57,20 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    optimizeDeps: {
+      exclude: [
+        "codemirror-editor-vue3",
+        "codemirror",
+        "vue-draggable-plus",
+        "@wangeditor-next/editor",
+        "@wangeditor-next/editor-for-vue",
+      ],
+    },
     build: {
       chunkSizeWarningLimit: 2000,
+    },
+    define: {
+      __APP_INFO__: JSON.stringify(__APP_INFO__),
     },
   };
 });

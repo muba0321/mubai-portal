@@ -27,7 +27,6 @@ import * as ElementPlusIcons from "@element-plus/icons-vue";
 
 // ===== 第三方插件 =====
 import VXETable from "vxe-table";
-import { InstallCodeMirror } from "codemirror-editor-vue3";
 import { configureVxeTable } from "@/plugins/vxe-table";
 
 // ===== 路由守卫 =====
@@ -48,7 +47,6 @@ Object.entries(ElementPlusIcons).forEach(([name, comp]) => app.component(name, c
 // 3️⃣ 第三方插件
 configureVxeTable();
 app.use(VXETable);
-app.use(InstallCodeMirror);
 
 // 4️⃣ 路由守卫
 setupPermissionGuard();

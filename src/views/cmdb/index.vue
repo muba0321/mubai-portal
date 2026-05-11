@@ -122,9 +122,9 @@
             <span v-else class="text-gray">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="120" align="center">
+        <el-table-column label="操作" fixed="right" width="140" align="center">
           <template #default="scope">
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-row gap-2 justify-center">
               <el-button type="primary" size="small" circle @click="handleEditClick(scope.row)">
                 <el-icon><EditPen /></el-icon>
               </el-button>

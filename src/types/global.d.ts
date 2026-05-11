@@ -11,6 +11,11 @@ declare global {
   type ExcelResult = import("@/types/api").ExcelResult;
   type TagView = import("@/types/ui").TagView;
   type AppSettings = import("@/types/ui").AppSettings;
+
+  const __APP_INFO__: {
+    pkg: { name: string; version: string };
+    lastBuildTime: string;
+  };
 }
 
 export {};
