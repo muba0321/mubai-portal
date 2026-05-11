@@ -1,0 +1,29 @@
+# Logs
+logs
+*.log
+pnpm-debug.log*
+
+# Dependencies
+node_modules
+dist
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local env files
+.env.local
+.env.*.local
+
+# Build artifacts
+*.tsbuildinfo

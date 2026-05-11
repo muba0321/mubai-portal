@@ -1,0 +1,9 @@
+{
+  "extensions": [
+    "Vue.volar",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "stylelint.vscode-stylelint",
+    "antfu.unocss"
+  ]
+}
