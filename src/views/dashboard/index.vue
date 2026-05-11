@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-container">
     <div class="welcome-bar">
-      <div class="welcome-title">欢迎回来，Admin</div>
+      <div class="welcome-title">欢迎回来，{{ userStore.userInfo?.nickname || "Admin" }}</div>
       <div class="welcome-subtitle">
         今天是 {{ currentDateStr }}，系统运行正常 | 最后更新：{{ lastUpdateStr }}
       </div>
@@ -94,12 +94,26 @@
 
 <script setup lang="ts">
 import { Monitor, DataAnalysis, Document, Bell, Setting, TrendCharts, User, EditPen, Clock, Link, ArrowRight, Cpu, Connection, DataBoard, Warning, Histogram } from "@element-plus/icons-vue";
+import DashboardAPI from "@/api/dashboard";
+import { useUserStore } from "@/store";
 
 defineOptions({ name: "Dashboard" });
 
-const currentDateStr = "2026年3月30日";
-const lastUpdateStr = "2分钟前";
+const userStore = useUserStore();
 
+// 动态日期
+const currentDateStr = computed(() => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
+  const w = weekDays[now.getDay()];
+  return `${y}年${m}月${d}日 星期${w}`;
+});
+const lastUpdateStr = ref("刚刚");
+
+// 功能卡片（静态）
 const featureCards = [
   { title: "CMDB 管理", desc: "虚拟机资产管理", icon: Monitor, bgColor: "#e8f4fd", color: "#409eff" },
   { title: "系统监控", desc: "实时性能监控", icon: DataAnalysis, bgColor: "#e8f8e8", color: "#67c23a" },
@@ -111,32 +125,105 @@ const featureCards = [
   { title: "操作记录", desc: "审计日志查看", icon: EditPen, bgColor: "#f0f7ff", color: "#1677ff" },
 ];
 
-const recentList = [
-  { title: "CMDB 虚拟机管理", icon: Monitor, bgColor: "#e8f4fd", color: "#409eff", time: "2分钟前访问" },
-  { title: "系统监控面板", icon: DataAnalysis, bgColor: "#e8f8e8", color: "#67c23a", time: "15分钟前访问" },
-  { title: "同步日志", icon: Document, bgColor: "#fef3e2", color: "#e6a23c", time: "1小时前访问" },
-  { title: "告警列表", icon: Bell, bgColor: "#fef0f0", color: "#f56c6c", time: "2小时前访问" },
-];
+// 最近访问（从 API 加载）
+const recentList = ref<any[]>([]);
 
-const statusItems = [
-  { label: "服务器", value: "24", unit: "在线", icon: Cpu, color: "#409eff", status: "online" },
-  { label: "服务", value: "142", unit: "运行中", icon: Connection, color: "#67c23a", status: "online" },
-  { label: "网络", value: "", unit: "正常", icon: DataBoard, color: "#1677ff", status: "online" },
-  { label: "存储", value: "78%", unit: "使用", icon: Histogram, color: "#e6a23c", status: "warning" },
-  { label: "告警", value: "3", unit: "未处理", icon: Warning, color: "#f56c6c", status: "warning" },
-  { label: "负载", value: "45%", unit: "正常", icon: DataBoard, color: "#67c23a", status: "online" },
-];
+// 系统状态（从 API 加载）
+const statusItems = ref<any[]>([]);
 
-const commonLinks = [
-  { title: "CMDB 虚拟机列表", desc: "管理所有虚拟机资产", icon: Document, bgColor: "#e8f4fd", color: "#409eff" },
-  { title: "性能监控大盘", desc: "实时查看系统性能指标", icon: TrendCharts, bgColor: "#e8f8e8", color: "#67c23a" },
-  { title: "系统配置", desc: "修改系统参数和设置", icon: Setting, bgColor: "#f0f0ff", color: "#9b59b6" },
-  { title: "帮助文档", desc: "查看使用指南和文档", icon: Link, bgColor: "#e0f7f0", color: "#13c2c2" },
-];
+// 常用链接（从 API 加载）
+const commonLinks = ref<any[]>([]);
+
+// 映射后端图标名到组件
+const iconMap: Record<string, any> = {
+  Monitor, DataAnalysis, Document, Bell, Setting, TrendCharts,
+  User, EditPen, Clock, Link, Cpu, Connection, DataBoard, Warning, Histogram,
+};
+
+async function fetchSystemStatus() {
+  try {
+    const data = await DashboardAPI.getSystemStatus();
+    statusItems.value = [
+      { label: "服务器", value: String(data.serverOnline ?? 0), unit: "在线", icon: Cpu, color: "#409eff", status: "online" },
+      { label: "服务", value: String(data.serviceRunning ?? 0), unit: "运行中", icon: Connection, color: "#67c23a", status: "online" },
+      { label: "网络", value: "", unit: data.networkStatus ?? "正常", icon: DataBoard, color: "#1677ff", status: "online" },
+      { label: "存储", value: data.storageUsage ?? "-", unit: "使用", icon: Histogram, color: "#e6a23c", status: "warning" },
+      { label: "告警", value: String(data.alertPending ?? 0), unit: "未处理", icon: Warning, color: "#f56c6c", status: data.alertPending > 0 ? "warning" : "online" },
+      { label: "负载", value: data.cpuLoad ?? "-", unit: "正常", icon: DataBoard, color: "#67c23a", status: "online" },
+    ];
+    lastUpdateStr.value = data.lastUpdated ?? "刚刚";
+  } catch {
+    // 使用默认值
+  }
+}
+
+async function fetchCommonLinks() {
+  try {
+    const data = await DashboardAPI.getCommonLinks();
+    commonLinks.value = (data || []).map((item: any) => ({
+      title: item.title,
+      desc: item.description,
+      icon: iconMap[item.icon] || Link,
+      bgColor: "#e8f4fd",
+      color: "#409eff",
+      url: item.url,
+      id: item.id,
+    }));
+  } catch {
+    // 使用默认值
+  }
+}
+
+async function fetchRecentVisits() {
+  try {
+    const data = await DashboardAPI.getRecentVisits();
+    recentList.value = (data || []).map((item: any, index: number) => {
+      const icons = [Monitor, DataAnalysis, Document, Bell];
+      const colors = ["#409eff", "#67c23a", "#e6a23c", "#f56c6c"];
+      const bgs = ["#e8f4fd", "#e8f8e8", "#fef3e2", "#fef0f0"];
+      const i = index % icons.length;
+      return {
+        title: item.pageTitle,
+        icon: icons[i],
+        bgColor: bgs[i],
+        color: colors[i],
+        time: formatTime(item.visitedAt),
+        path: item.pagePath,
+      };
+    });
+  } catch {
+    // 使用默认值
+  }
+}
+
+function formatTime(isoStr: string): string {
+  if (!isoStr) return "";
+  const date = new Date(isoStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "刚刚访问";
+  if (diffMin < 60) return `${diffMin}分钟前访问`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}小时前访问`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}天前访问`;
+}
 
 function handleCardClick(item: any) { console.log("navigate:", item.title); }
-function handleLinkClick(item: any) { console.log("open link:", item.title); }
-function fetchSystemStatus() { console.log("refresh status"); }
+function handleLinkClick(item: any) {
+  if (item.url) {
+    window.open(item.url, "_blank");
+  } else {
+    console.log("open link:", item.title);
+  }
+}
+
+onMounted(() => {
+  fetchSystemStatus();
+  fetchCommonLinks();
+  fetchRecentVisits();
+});
 </script>
 
 <style lang="scss" scoped>

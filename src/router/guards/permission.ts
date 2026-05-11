@@ -6,6 +6,7 @@ import { useTenantStoreHook } from "@/store/modules/tenant";
 import { isTenantEnabled } from "@/utils/tenant";
 import { addRecentMenu } from "@/composables/useRecentMenus";
 import { AuthStorage } from "@/utils/auth";
+import AuthAPI from "@/api/auth";
 
 /**
  * 路由权限守卫
@@ -17,33 +18,50 @@ export function setupPermissionGuard() {
     try {
       const userStore = useUserStore();
 
-      // 无后端时设置默认 token（有效 JWT 格式），跳过登录
-      // 如果已有 token 但格式不对（不是标准 JWT 三段式），也重置为 mock token
-      const token = AuthStorage.getAccessToken();
-      const isValidJwt = token && token.split(".").length === 3;
-      if (!token || !isValidJwt) {
-        const mockJwt =
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhZG1pbiIsIm5pY2tuYW1lIjoiQWRtaW4iLCJpYXQiOjE3NDY5NDA4MDAsImV4cCI6MjA2MjMwMDgwMH0.mock-signature";
-        const mockRefresh =
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3NDY5NDA4MDAsImV4cCI6MjA2MjMwMDgwMH0.mock-refresh-signature";
-        AuthStorage.setTokens(mockJwt, mockRefresh, false);
-        userStore.userInfo = {
-          userId: 1,
-          username: "admin",
-          nickname: "Admin",
-          avatar: "",
-          roles: ["admin"],
-          perms: ["*:*:*"],
-        } as any;
+      // 跳过登录：无 token 时后台自动登录 admin/admin123
+      if (!AuthStorage.getAccessToken()) {
+        try {
+          const { accessToken, refreshToken } = await AuthAPI.login({
+            username: "admin",
+            password: "admin123",
+          });
+          AuthStorage.setTokens(accessToken, refreshToken, true);
+          // 获取用户信息
+          try {
+            const info = await userStore.getUserInfo();
+            // 后端返回 role 字段（单字符串），前端需要 roles[] 和 perms[]
+            userStore.userInfo = {
+              userId: (info as any).userId ?? 1,
+              username: (info as any).username ?? "admin",
+              nickname: (info as any).nickname ?? "Admin",
+              avatar: (info as any).avatar ?? "",
+              roles: [(info as any).role ?? "admin"],
+              perms: ["*:*:*"],
+            } as any;
+          } catch {
+            // 静默失败，用默认信息
+            userStore.userInfo = {
+              userId: 1,
+              username: "admin",
+              nickname: "Admin",
+              avatar: "",
+              roles: ["admin"],
+              perms: ["*:*:*"],
+            } as any;
+          }
+        } catch {
+          // 登录失败，跳回登录页
+          ElMessage.warning("自动登录失败，请手动登录");
+          next(`/login?redirect=${encodeURIComponent(to.fullPath)}`);
+          NProgress.done();
+          return;
+        }
       }
 
       const permissionStore = usePermissionStore();
 
       // 动态路由生成
       if (!permissionStore.isRouteGenerated) {
-        // 已禁用 SSE（无后端时避免报错）
-        // 已禁用 getUserInfo API 调用（无后端时静默跳过）
-
         await initTenantContext();
 
         const dynamicRoutes = await permissionStore.generateRoutes();

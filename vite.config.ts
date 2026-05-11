@@ -16,12 +16,14 @@ const __APP_INFO__ = {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
+  const enableMock = env.VITE_MOCK_DEV_SERVER === "true";
+
   return {
     plugins: [
       vue(),
-      mockDevServerPlugin({
-        mockDirs: resolve(process.cwd(), "mock"),
-      }),
+      ...(enableMock
+        ? [mockDevServerPlugin({ mockDirs: resolve(process.cwd(), "mock") })]
+        : []),
       AutoImport({
         imports: ["vue", "vue-router", "pinia", "@vueuse/core", "vue-i18n"],
         dts: "src/types/auto-imports.d.ts",
@@ -53,7 +55,7 @@ export default defineConfig(({ mode }) => {
         [env.VITE_APP_BASE_API]: {
           target: env.VITE_APP_API_URL,
           changeOrigin: true,
-          rewrite: (path) => path.replace(new RegExp("^" + env.VITE_APP_BASE_API), ""),
+          rewrite: (path) => path.replace(new RegExp("^" + env.VITE_APP_BASE_API), "/api/v1"),
         },
       },
     },

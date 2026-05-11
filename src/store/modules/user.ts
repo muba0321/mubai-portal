@@ -102,7 +102,11 @@ export const useUserStore = defineStore("user", () => {
 
     const { accessToken, refreshToken: newRefreshToken } =
       await AuthAPI.refreshToken(currentRefreshToken);
-    AuthStorage.setTokens(accessToken, newRefreshToken, AuthStorage.getRememberMe());
+    AuthStorage.setTokens(
+      accessToken,
+      newRefreshToken || currentRefreshToken,
+      AuthStorage.getRememberMe()
+    );
   }
 
   return {

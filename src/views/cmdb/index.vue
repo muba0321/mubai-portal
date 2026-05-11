@@ -224,23 +224,14 @@
 <script setup lang="ts">
 import { Search, Refresh, Plus, Upload, Download, EditPen, Delete, Edit } from "@element-plus/icons-vue";
 import { useTableSelection } from "@/composables";
+import CmdbAPI from "@/api/cmdb";
 
 defineOptions({ name: "CMDB" });
 
 // 集群选项
-const clusterOptions = [
-  { label: "OpenClaw-Main", value: "OpenClaw-Main" },
-  { label: "K8s-Production", value: "K8s-Production" },
-  { label: "Infra-Cluster", value: "Infra-Cluster" },
-  { label: "Dev-Cluster", value: "Dev-Cluster" },
-];
-
+const clusterOptions = ref<{ label: string; value: string }[]>([]);
 // 租户选项
-const tenantOptions = [
-  { label: "OpenClaw", value: "OpenClaw" },
-  { label: "Platform", value: "Platform" },
-  { label: "Monitoring", value: "Monitoring" },
-];
+const tenantOptions = ref<{ label: string; value: string }[]>([]);
 
 const queryFormRef = ref();
 const formRef = ref();
@@ -285,22 +276,6 @@ const rules: any = {
   tenant: [{ required: true, message: "请选择租户", trigger: "change" }],
 };
 
-// Mock data
-const mockData = [
-  { id: 1, cluster: "OpenClaw-Main", externalIp: "38.246.245.32", internalIp: "10.0.118.4", description: "OpenClaw 主节点 - 文档归档/Git 推送", name: "vm-web-01", status: 1, tenant: "OpenClaw", vcpus: 4, memory: 8192, disk: "100GB", accessUrl: "portal.mubai.top" },
-  { id: 2, cluster: "K8s-Production", externalIp: "192.168.1.100", internalIp: "10.0.119.5", description: "K8s 生产集群 - master 节点", name: "k8s-master-01", status: 1, tenant: "OpenClaw", vcpus: 8, memory: 16384, disk: "200GB", accessUrl: "k8s.example.com" },
-  { id: 3, cluster: "Infra-Cluster", externalIp: "10.0.1.50", internalIp: "10.0.1.51", description: "基础设施集群 - 监控/日志", name: "infra-node-01", status: 0, tenant: "OpenClaw", vcpus: 2, memory: 4096, disk: "50GB", accessUrl: "" },
-  { id: 4, cluster: "OpenClaw-Main", externalIp: "38.246.245.33", internalIp: "10.0.118.5", description: "OpenClaw 从节点 - 计算任务", name: "vm-compute-01", status: 1, tenant: "OpenClaw", vcpus: 16, memory: 32768, disk: "500GB", accessUrl: "" },
-  { id: 5, cluster: "Dev-Cluster", externalIp: "10.10.1.20", internalIp: "172.16.1.20", description: "开发测试环境", name: "dev-test-01", status: 1, tenant: "Platform", vcpus: 4, memory: 8192, disk: "100GB", accessUrl: "dev.mubai.top" },
-  { id: 6, cluster: "K8s-Production", externalIp: "192.168.1.101", internalIp: "10.0.119.6", description: "K8s 生产集群 - worker 节点", name: "k8s-worker-01", status: 1, tenant: "OpenClaw", vcpus: 8, memory: 16384, disk: "500GB", accessUrl: "" },
-  { id: 7, cluster: "Infra-Cluster", externalIp: "10.0.1.52", internalIp: "10.0.1.53", description: "Prometheus 监控节点", name: "prometheus-01", status: 1, tenant: "Monitoring", vcpus: 4, memory: 8192, disk: "200GB", accessUrl: "prometheus.mubai.top" },
-  { id: 8, cluster: "Infra-Cluster", externalIp: "10.0.1.54", internalIp: "10.0.1.55", description: "Grafana 面板节点", name: "grafana-01", status: 1, tenant: "Monitoring", vcpus: 2, memory: 4096, disk: "50GB", accessUrl: "grafana.mubai.top" },
-  { id: 9, cluster: "Dev-Cluster", externalIp: "10.10.1.21", internalIp: "172.16.1.21", description: "CI/CD Jenkins 节点", name: "jenkins-01", status: 1, tenant: "Platform", vcpus: 4, memory: 8192, disk: "100GB", accessUrl: "jenkins.mubai.top" },
-  { id: 10, cluster: "OpenClaw-Main", externalIp: "38.246.245.34", internalIp: "10.0.118.6", description: "API 网关节点", name: "api-gateway-01", status: 1, tenant: "OpenClaw", vcpus: 4, memory: 8192, disk: "100GB", accessUrl: "api.mubai.top" },
-  { id: 11, cluster: "K8s-Production", externalIp: "192.168.1.102", internalIp: "10.0.119.7", description: "K8s 生产集群 - worker 节点", name: "k8s-worker-02", status: 0, tenant: "OpenClaw", vcpus: 8, memory: 16384, disk: "500GB", accessUrl: "" },
-  { id: 12, cluster: "Dev-Cluster", externalIp: "10.10.1.22", internalIp: "172.16.1.22", description: "GitLab 代码仓库", name: "gitlab-01", status: 1, tenant: "Platform", vcpus: 4, memory: 8192, disk: "500GB", accessUrl: "gitlab.mubai.top" },
-];
-
 function getClusterTagType(cluster: string): "success" | "warning" | "info" | "primary" | "danger" | "" {
   const map: Record<string, any> = {
     "OpenClaw-Main": "success",
@@ -314,27 +289,33 @@ function getClusterTagType(cluster: string): "success" | "warning" | "info" | "p
 async function fetchList() {
   loading.value = true;
   try {
-    await new Promise((r) => setTimeout(r, 300));
-    let data = [...mockData];
-    if (queryParams.keywords) {
-      const kw = queryParams.keywords.toLowerCase();
-      data = data.filter((item) =>
-        item.name.toLowerCase().includes(kw) ||
-        item.cluster.toLowerCase().includes(kw) ||
-        item.description.toLowerCase().includes(kw) ||
-        item.externalIp.includes(kw) ||
-        item.internalIp.includes(kw)
-      );
-    }
-    if (queryParams.cluster) data = data.filter((item) => item.cluster === queryParams.cluster);
-    if (queryParams.status !== "") data = data.filter((item) => item.status === Number(queryParams.status));
-    if (queryParams.tenant) data = data.filter((item) => item.tenant === queryParams.tenant);
+    const params: any = {
+      pageNum: queryParams.pageNum,
+      pageSize: queryParams.pageSize,
+    };
+    if (queryParams.keywords) params.keywords = queryParams.keywords;
+    if (queryParams.cluster) params.cluster = queryParams.cluster;
+    if (queryParams.status !== "") params.status = Number(queryParams.status);
+    if (queryParams.tenant) params.tenant = queryParams.tenant;
 
-    total.value = data.length;
-    const start = (queryParams.pageNum - 1) * queryParams.pageSize;
-    cmdbList.value = data.slice(start, start + queryParams.pageSize);
+    const result = await CmdbAPI.getPage(params);
+    cmdbList.value = result.list || [];
+    total.value = result.total || 0;
   } finally {
     loading.value = false;
+  }
+}
+
+async function fetchOptions() {
+  try {
+    const [clusters, tenants] = await Promise.all([
+      CmdbAPI.getClusters(),
+      CmdbAPI.getTenants(),
+    ]);
+    clusterOptions.value = clusters || [];
+    tenantOptions.value = tenants || [];
+  } catch {
+    // 选项加载失败不影响列表展示
   }
 }
 
@@ -369,9 +350,19 @@ function handleEditClick(row: any) {
 async function handleSubmit() {
   const valid = await formRef.value?.validate().then(() => true, () => false);
   if (!valid) return;
-  ElMessage.success(formData.id ? "修改成功" : "添加成功");
-  dialogVisible.value = false;
-  fetchList();
+  try {
+    if (formData.id) {
+      await CmdbAPI.update(formData.id, formData as any);
+      ElMessage.success("修改成功");
+    } else {
+      await CmdbAPI.create(formData as any);
+      ElMessage.success("添加成功");
+    }
+    dialogVisible.value = false;
+    fetchList();
+  } catch {
+    // 错误已在拦截器处理
+  }
 }
 
 function handleDelete(row: any) {
@@ -379,13 +370,19 @@ function handleDelete(row: any) {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning",
-  }).then(() => {
-    ElMessage.success("删除成功");
-    fetchList();
+  }).then(async () => {
+    try {
+      await CmdbAPI.deleteById(row.id);
+      ElMessage.success("删除成功");
+      fetchList();
+    } catch {
+      // 错误已在拦截器处理
+    }
   }).catch(() => {});
 }
 
 onMounted(() => {
+  fetchOptions();
   fetchList();
 });
 </script>
