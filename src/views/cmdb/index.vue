@@ -112,7 +112,11 @@
           </template>
         </el-table-column>
         <el-table-column label="VCPUS" prop="vcpus" width="80" align="center" />
-        <el-table-column label="内存(MB)" prop="memory" width="100" align="right" />
+        <el-table-column label="内存(GB)" prop="memory" width="100" align="right">
+          <template #default="scope">
+            {{ (scope.row.memory / 1024).toFixed(scope.row.memory % 1024 === 0 ? 0 : 1) }}
+          </template>
+        </el-table-column>
         <el-table-column label="硬盘" prop="disk" min-width="80" align="center" />
         <el-table-column label="访问 URL" prop="accessUrl" min-width="150">
           <template #default="scope">
@@ -138,20 +142,6 @@
 
       <!-- 底部操作栏 -->
       <div class="table-footer">
-        <div class="table-footer__actions">
-          <el-button type="success" size="small">
-            <el-icon class="mr-1"><Plus /></el-icon>添加组件
-          </el-button>
-          <el-button type="warning" size="small" :disabled="!hasSelection">
-            <el-icon class="mr-1"><EditPen /></el-icon>修改选中项
-          </el-button>
-          <el-button type="warning" size="small" :disabled="!hasSelection">
-            <el-icon class="mr-1"><Edit /></el-icon>重命名选中项
-          </el-button>
-          <el-button type="danger" size="small" :disabled="!hasSelection">
-            <el-icon class="mr-1"><Delete /></el-icon>删除选中项
-          </el-button>
-        </div>
         <pagination
           v-if="total > 0"
           v-model:total="total"
@@ -166,7 +156,7 @@
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px" append-to-body>
       <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px">
         <el-form-item label="集群" prop="cluster">
-          <el-select v-model="formData.cluster" placeholder="请选择集群" style="width: 100%">
+          <el-select v-model="formData.cluster" placeholder="请选择或输入集群" allow-create filterable style="width: 100%">
             <el-option
               v-for="item in clusterOptions"
               :key="item.value"
@@ -200,8 +190,8 @@
         <el-form-item label="VCPUS" prop="vcpus">
           <el-input-number v-model="formData.vcpus" :min="1" :max="128" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="内存(MB)" prop="memory">
-          <el-input-number v-model="formData.memory" :min="512" :max="262144" :step="1024" style="width: 100%" />
+        <el-form-item label="内存(GB)" prop="memory">
+          <el-input-number v-model="formData.memory" :min="1" :max="256" :step="1" style="width: 100%" />
         </el-form-item>
         <el-form-item label="硬盘" prop="disk">
           <el-input v-model="formData.disk" placeholder="如 100GB" />
@@ -222,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { Search, Refresh, Plus, Upload, Download, EditPen, Delete, Edit } from "@element-plus/icons-vue";
+import { Search, Refresh, Plus, Upload, Download, EditPen, Delete } from "@element-plus/icons-vue";
 import { useTableSelection } from "@/composables";
 import CmdbAPI from "@/api/cmdb";
 
@@ -260,7 +250,7 @@ const initialFormData = {
   name: "",
   tenant: "OpenClaw",
   vcpus: 4,
-  memory: 8192,
+  memory: 8,
   disk: "100GB",
   accessUrl: "",
   status: 1,
@@ -333,7 +323,7 @@ function handleResetQuery() {
   handleQuery();
 }
 
-const { selectedIds, hasSelection, handleSelectionChange } = useTableSelection<any>();
+const { selectedIds, handleSelectionChange } = useTableSelection<any>();
 
 function handleCreateClick() {
   dialogTitle.value = "添加虚拟机";
@@ -343,7 +333,8 @@ function handleCreateClick() {
 
 function handleEditClick(row: any) {
   dialogTitle.value = "编辑虚拟机";
-  Object.assign(formData, { ...row });
+  const form = { ...row, memory: Math.round(row.memory / 1024) };
+  Object.assign(formData, form);
   dialogVisible.value = true;
 }
 
@@ -351,11 +342,12 @@ async function handleSubmit() {
   const valid = await formRef.value?.validate().then(() => true, () => false);
   if (!valid) return;
   try {
+    const submitData = { ...formData, memory: formData.memory * 1024 };
     if (formData.id) {
-      await CmdbAPI.update(formData.id, formData as any);
+      await CmdbAPI.update(formData.id, submitData as any);
       ElMessage.success("修改成功");
     } else {
-      await CmdbAPI.create(formData as any);
+      await CmdbAPI.create(submitData as any);
       ElMessage.success("添加成功");
     }
     dialogVisible.value = false;
