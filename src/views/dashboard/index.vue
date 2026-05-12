@@ -74,7 +74,7 @@
           <el-icon><Link /></el-icon>
           常用链接
         </div>
-        <el-button text size="small" type="primary">管理链接</el-button>
+        <el-button text size="small" type="primary" @click="showManageDialog">管理链接</el-button>
       </div>
       <div class="links-list">
         <div v-for="link in commonLinks" :key="link.title" class="link-item" @click="handleLinkClick(link)">
@@ -89,13 +89,67 @@
         </div>
       </div>
     </div>
+
+    <!-- 管理链接弹窗 -->
+    <el-dialog v-model="manageDialogVisible" title="管理常用链接" width="800px" append-to-body>
+      <div class="manage-toolbar">
+        <el-button type="primary" size="small" @click="handleAddLink">
+          <el-icon class="mr-1"><Plus /></el-icon>添加链接
+        </el-button>
+      </div>
+      <el-table :data="manageLinks" border stripe>
+        <el-table-column label="名称" prop="title" min-width="120" />
+        <el-table-column label="链接" prop="url" min-width="180" show-overflow-tooltip />
+        <el-table-column label="图标" prop="icon" width="100" />
+        <el-table-column label="排序" prop="sort" width="60" align="center" />
+        <el-table-column label="操作" width="120" align="center">
+          <template #default="scope">
+            <el-button type="primary" link size="small" @click="handleEditLink(scope.row)">编辑</el-button>
+            <el-button type="danger" link size="small" @click="handleDeleteLink(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
+
+    <!-- 链接编辑弹窗 -->
+    <el-dialog v-model="editDialogVisible" :title="editForm.id ? '编辑链接' : '添加链接'" width="500px" append-to-body>
+      <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="80px">
+        <el-form-item label="名称" prop="title">
+          <el-input v-model="editForm.title" placeholder="如：CMDB 虚拟机列表" />
+        </el-form-item>
+        <el-form-item label="链接" prop="url">
+          <el-input v-model="editForm.url" placeholder="/cmdb 或 https://..." />
+        </el-form-item>
+        <el-form-item label="图标" prop="icon">
+          <el-select v-model="editForm.icon" placeholder="选择图标" style="width: 100%">
+            <el-option v-for="name in iconOptions" :key="name" :label="name" :value="name">
+              <div class="flex items-center gap-2">
+                <el-icon><component :is="iconMap[name]" /></el-icon>
+                <span>{{ name }}</span>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="描述" prop="description">
+          <el-input v-model="editForm.description" placeholder="链接描述" />
+        </el-form-item>
+        <el-form-item label="排序" prop="sort">
+          <el-input-number v-model="editForm.sort" :min="0" :max="999" style="width: 100%" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="handleSubmitLink">确 定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Monitor, DataAnalysis, Document, Bell, Setting, TrendCharts, User, EditPen, Clock, Link, ArrowRight, Cpu, Connection, DataBoard, Warning, Histogram } from "@element-plus/icons-vue";
+import { Monitor, DataAnalysis, Document, Bell, Setting, TrendCharts, User, EditPen, Clock, Link, ArrowRight, Cpu, Connection, DataBoard, Warning, Histogram, Plus } from "@element-plus/icons-vue";
 import DashboardAPI from "@/api/dashboard";
 import { useUserStore } from "@/store";
+import { type CommonLink } from "@/api/dashboard";
 
 defineOptions({ name: "Dashboard" });
 
@@ -224,6 +278,87 @@ onMounted(() => {
   fetchCommonLinks();
   fetchRecentVisits();
 });
+
+// 管理链接弹窗
+const manageDialogVisible = ref(false);
+const manageLinks = ref<any[]>([]);
+
+// 编辑链接弹窗
+const editDialogVisible = ref(false);
+const editFormRef = ref();
+const editForm = reactive<{ id?: number; title: string; url: string; icon: string; description: string; sort: number }>({
+  id: undefined,
+  title: "",
+  url: "",
+  icon: "Link",
+  description: "",
+  sort: 0,
+});
+const editRules = {
+  title: [{ required: true, message: "请输入名称", trigger: "blur" }],
+  url: [{ required: true, message: "请输入链接", trigger: "blur" }],
+};
+
+// 可选图标列表
+const iconOptions = ["Monitor", "DataAnalysis", "Document", "Bell", "Setting", "TrendCharts", "User", "EditPen", "Clock", "Link", "Cpu", "Connection", "DataBoard", "Warning", "Histogram"];
+
+function showManageDialog() {
+  manageLinks.value = commonLinks.value.map(l => ({
+    id: l.id,
+    title: l.title,
+    url: l.url,
+    icon: Object.keys(iconMap).find(k => iconMap[k] === l.icon) || "Link",
+    description: l.desc,
+    sort: 0,
+  }));
+  manageDialogVisible.value = true;
+}
+
+function handleAddLink() {
+  Object.assign(editForm, { id: undefined, title: "", url: "", icon: "Link", description: "", sort: 0 });
+  editDialogVisible.value = true;
+}
+
+function handleEditLink(row: any) {
+  Object.assign(editForm, { ...row });
+  editDialogVisible.value = true;
+}
+
+async function handleSubmitLink() {
+  const valid = await editFormRef.value?.validate().then(() => true, () => false);
+  if (!valid) return;
+  try {
+    if (editForm.id) {
+      await DashboardAPI.updateLink(editForm.id, editForm);
+      ElMessage.success("修改成功");
+    } else {
+      await DashboardAPI.createLink(editForm);
+      ElMessage.success("添加成功");
+    }
+    editDialogVisible.value = false;
+    await fetchCommonLinks();
+    showManageDialog();
+  } catch {
+    // 错误已在拦截器处理
+  }
+}
+
+function handleDeleteLink(row: any) {
+  ElMessageBox.confirm(`确认删除「${row.title}」？`, "警告", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  }).then(async () => {
+    try {
+      await DashboardAPI.deleteLink(row.id);
+      ElMessage.success("删除成功");
+      await fetchCommonLinks();
+      showManageDialog();
+    } catch {
+      // 错误已在拦截器处理
+    }
+  }).catch(() => {});
+}
 </script>
 
 <style lang="scss" scoped>
@@ -296,4 +431,6 @@ onMounted(() => {
     .link-arrow { color: #c0c4cc; flex-shrink: 0; }
   }
 }
+
+.manage-toolbar { margin-bottom: 12px; }
 </style>

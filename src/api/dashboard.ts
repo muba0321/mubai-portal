@@ -60,6 +60,32 @@ const DashboardAPI = {
       data,
     });
   },
+
+  /** 新增常用链接 */
+  createLink(data: Partial<CommonLink>) {
+    return request({
+      url: `${DASHBOARD_BASE_URL}/common-links`,
+      method: "post",
+      data,
+    });
+  },
+
+  /** 修改常用链接 */
+  updateLink(id: number, data: Partial<CommonLink>) {
+    return request({
+      url: `${DASHBOARD_BASE_URL}/common-links/${id}`,
+      method: "put",
+      data,
+    });
+  },
+
+  /** 删除常用链接 */
+  deleteLink(id: number) {
+    return request({
+      url: `${DASHBOARD_BASE_URL}/common-links/${id}`,
+      method: "delete",
+    });
+  },
 };
 
 export default DashboardAPI;
