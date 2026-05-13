@@ -4,20 +4,16 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # 安装 pnpm
-RUN npm install -g pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# 复制依赖文件
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
-# 复制源码
 COPY . .
-
-# 构建（跳过类型检查，只运行 vite build）
-RUN pnpm vite build
+RUN pnpm build
 
 # 生产阶段 — 只输出构建产物
-FROM nginx:1.25-alpine AS production
+FROM nginx:alpine
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
