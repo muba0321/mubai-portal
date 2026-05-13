@@ -9,6 +9,9 @@ const AuthAPI = {
     return request<any, LoginResponse>({
       url: `${AUTH_BASE_URL}/login`,
       method: "post",
+      headers: {
+        Authorization: "no-auth",
+      },
       data: {
         username: data.username,
         password: data.password,

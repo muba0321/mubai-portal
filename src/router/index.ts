@@ -23,42 +23,75 @@ export const constantRoutes: RouteRecordRaw[] = [
     meta: { hidden: true },
   },
 
+  // 根路径重定向
   {
     path: "/",
-    name: "/",
     component: Layout,
     redirect: "/dashboard",
     meta: { hidden: true },
+    children: [],
+  },
+
+  // 首页
+  {
+    path: "/dashboard",
+    component: Layout,
+    redirect: "/dashboard/index",
+    meta: { title: "首页", icon: "homepage" },
     children: [
       {
-        path: "401",
-        component: () => import("@/views/error/401.vue"),
-        meta: { hidden: true },
-      },
-      {
-        path: "404",
-        component: () => import("@/views/error/404.vue"),
-        meta: { hidden: true },
-      },
-      {
-        path: "profile",
-        name: "Profile",
-        component: () => import("@/views/profile/index.vue"),
-        meta: { title: "个人中心", icon: "user", hidden: true },
-      },
-      {
-        path: "my-notice",
-        name: "MyNotice",
-        component: () => import("@/views/profile/notice/index.vue"),
-        meta: { title: "我的通知", icon: "user", hidden: true },
-      },
-      {
-        path: "/detail/:id(\\d+)",
-        name: "DemoDetail",
-        component: () => import("@/views/demo/detail.vue"),
-        meta: { title: "详情页缓存", icon: "user", hidden: true, keepAlive: true },
+        path: "index",
+        name: "Dashboard",
+        component: () => import("@/views/dashboard/index.vue"),
+        meta: { title: "首页", icon: "homepage", affix: true },
       },
     ],
+  },
+
+  // CMDB 管理
+  {
+    path: "/cmdb",
+    component: Layout,
+    redirect: "/cmdb/index",
+    meta: { title: "CMDB 管理", icon: "monitor" },
+    children: [
+      {
+        path: "index",
+        name: "CMDB",
+        component: () => import("@/views/cmdb/index.vue"),
+        meta: { title: "虚拟机管理", icon: "monitor" },
+      },
+    ],
+  },
+
+  // 隐藏路由
+  {
+    path: "/401",
+    component: () => import("@/views/error/401.vue"),
+    meta: { hidden: true },
+  },
+  {
+    path: "/404",
+    component: () => import("@/views/error/404.vue"),
+    meta: { hidden: true },
+  },
+  {
+    path: "/profile",
+    name: "Profile",
+    component: () => import("@/views/profile/index.vue"),
+    meta: { hidden: true },
+  },
+  {
+    path: "/my-notice",
+    name: "MyNotice",
+    component: () => import("@/views/profile/notice/index.vue"),
+    meta: { hidden: true },
+  },
+  {
+    path: "/detail/:id(\\d+)",
+    name: "DemoDetail",
+    component: () => import("@/views/demo/detail.vue"),
+    meta: { hidden: true, keepAlive: true },
   },
 ];
 
@@ -68,7 +101,6 @@ export const constantRoutes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHashHistory(),
   routes: constantRoutes,
-  // 刷新时，滚动条位置还原
   scrollBehavior: () => ({ left: 0, top: 0 }),
 });
 

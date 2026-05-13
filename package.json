@@ -1,6 +1,6 @@
 {
-  "name": "vue3-element-admin",
-  "version": "4.3.0",
+  "name": "sre-portal-frontend",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
