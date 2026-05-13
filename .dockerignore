@@ -1,0 +1,26 @@
+# 依赖
+node_modules/
+pnpm-lock.yaml
+
+# 构建产物
+dist/
+
+# 配置文件（Docker 中会单独复制）
+.env.development
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+
+# 其他
+.husky/
+*.log
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
