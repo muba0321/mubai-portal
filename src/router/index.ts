@@ -64,6 +64,22 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
+  // 数据库管理
+  {
+    path: "/database",
+    component: Layout,
+    redirect: "/database/index",
+    meta: { title: "数据库管理", icon: "el-icon-Coin" },
+    children: [
+      {
+        path: "index",
+        name: "Database",
+        component: () => import("@/views/database/index.vue"),
+        meta: { title: "数据库管理", icon: "el-icon-Coin" },
+      },
+    ],
+  },
+
   // 隐藏路由
   {
     path: "/401",
