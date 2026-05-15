@@ -80,6 +80,22 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
+  // 待办管理
+  {
+    path: "/todo",
+    component: Layout,
+    redirect: "/todo/index",
+    meta: { title: "待办管理", icon: "todo" },
+    children: [
+      {
+        path: "index",
+        name: "Todo",
+        component: () => import("@/views/todo/index.vue"),
+        meta: { title: "待办管理", icon: "todo" },
+      },
+    ],
+  },
+
   // 隐藏路由
   {
     path: "/401",
