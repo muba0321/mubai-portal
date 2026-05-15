@@ -37,13 +37,13 @@ export const constantRoutes: RouteRecordRaw[] = [
     path: "/dashboard",
     component: Layout,
     redirect: "/dashboard/index",
-    meta: { title: "首页", icon: "homepage" },
+    meta: { title: "首页", icon: "el-icon-HomeFilled" },
     children: [
       {
         path: "index",
         name: "Dashboard",
         component: () => import("@/views/dashboard/index.vue"),
-        meta: { title: "首页", icon: "homepage", affix: true },
+        meta: { title: "首页", icon: "el-icon-HomeFilled", affix: true },
       },
     ],
   },
@@ -53,13 +53,13 @@ export const constantRoutes: RouteRecordRaw[] = [
     path: "/cmdb",
     component: Layout,
     redirect: "/cmdb/index",
-    meta: { title: "CMDB 管理", icon: "monitor" },
+    meta: { title: "CMDB 管理", icon: "el-icon-Monitor" },
     children: [
       {
         path: "index",
         name: "CMDB",
         component: () => import("@/views/cmdb/index.vue"),
-        meta: { title: "虚拟机管理", icon: "monitor" },
+        meta: { title: "虚拟机管理", icon: "el-icon-Monitor" },
       },
     ],
   },
@@ -69,13 +69,13 @@ export const constantRoutes: RouteRecordRaw[] = [
     path: "/database",
     component: Layout,
     redirect: "/database/index",
-    meta: { title: "数据库管理", icon: "el-icon-Coin" },
+    meta: { title: "数据库管理", icon: "el-icon-DataBoard" },
     children: [
       {
         path: "index",
         name: "Database",
         component: () => import("@/views/database/index.vue"),
-        meta: { title: "数据库管理", icon: "el-icon-Coin" },
+        meta: { title: "数据库管理", icon: "el-icon-DataBoard" },
       },
     ],
   },
@@ -85,13 +85,13 @@ export const constantRoutes: RouteRecordRaw[] = [
     path: "/todo",
     component: Layout,
     redirect: "/todo/index",
-    meta: { title: "待办管理", icon: "todo" },
+    meta: { title: "待办管理", icon: "el-icon-List" },
     children: [
       {
         path: "index",
         name: "Todo",
         component: () => import("@/views/todo/index.vue"),
-        meta: { title: "待办管理", icon: "todo" },
+        meta: { title: "待办管理", icon: "el-icon-List" },
       },
     ],
   },

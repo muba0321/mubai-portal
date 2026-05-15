@@ -166,7 +166,8 @@ function resolvePath(routePath: string) {
 
 <style lang="scss">
 /* stylelint-disable no-descending-specificity */
-/* 菜单图标统一样式 */
+
+/* ── 图标统一样式 ── */
 .el-menu-item,
 .el-sub-menu__title {
   .el-icon {
@@ -184,7 +185,7 @@ function resolvePath(routePath: string) {
   }
 }
 
-/* 折叠状态下的图标样式 - 确保 SVG 图标不被压缩 */
+/* ── 折叠状态 ── */
 .el-menu--collapse {
   .el-menu-item,
   .el-sub-menu > .el-sub-menu__title {
@@ -196,7 +197,6 @@ function resolvePath(routePath: string) {
     }
   }
 
-  /* tooltip 弹出层中的图标 */
   .el-tooltip__trigger {
     [class^="i-svg:"] {
       width: 18px !important;
@@ -207,7 +207,7 @@ function resolvePath(routePath: string) {
   }
 }
 
-/* hideSidebar 状态下的图标 */
+/* ── hideSidebar 状态 ── */
 .hideSidebar {
   [class^="i-svg:"] {
     width: 18px !important;
@@ -257,21 +257,93 @@ function resolvePath(routePath: string) {
   }
 }
 
-html.dark {
-  .el-menu-item:hover {
-    background-color: $menu-hover;
+/* ── 现代简约：菜单项样式 ── */
+.el-menu--vertical {
+  .el-menu-item {
+    margin: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: rgba(64, 158, 255, 0.08) !important;
+    }
+
+    &.is-active {
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3)) !important;
+      color: #fff !important;
+      box-shadow: 0 2px 8px rgba(64, 158, 255, 0.25);
+
+      .el-icon {
+        color: #fff !important;
+      }
+    }
+  }
+
+  .el-sub-menu__title {
+    margin: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: rgba(64, 158, 255, 0.08) !important;
+    }
   }
 }
 
+/* ── 深蓝色侧边栏主题 ── */
 html.sidebar-color-blue {
+  .el-menu--vertical {
+    .el-menu-item {
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+      }
+
+      &.is-active {
+        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3)) !important;
+        color: #fff !important;
+        box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+
+        .el-icon {
+          color: #fff !important;
+        }
+      }
+    }
+
+    .el-sub-menu__title {
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+      }
+    }
+  }
+
   .el-menu-item:hover {
-    background-color: $menu-hover;
+    background-color: rgba(255, 255, 255, 0.08) !important;
   }
 }
 
-// 父菜单激活状态样式 - 当子菜单激活时，父菜单显示激活状态
+/* ── 暗黑主题 ── */
+html.dark {
+  .el-menu--vertical {
+    .el-menu-item {
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.06) !important;
+      }
+    }
+
+    .el-sub-menu__title {
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.06) !important;
+      }
+    }
+  }
+
+  .el-menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+  }
+}
+
+/* ── 父菜单激活状态 ── */
 .el-sub-menu {
-  // 当父菜单包含激活子菜单时的样式
   &.has-active-child > .el-sub-menu__title {
     color: var(--el-color-primary) !important;
     background-color: var(--el-color-primary-light-9) !important;
@@ -281,7 +353,6 @@ html.sidebar-color-blue {
     }
   }
 
-  // 深色主题下的父菜单激活状态"
   html.dark & {
     &.has-active-child > .el-sub-menu__title {
       color: var(--el-color-primary-light-3) !important;
@@ -293,7 +364,6 @@ html.sidebar-color-blue {
     }
   }
 
-  // 深蓝色侧边栏配色下的父菜单激活状态"
   html.sidebar-color-blue & {
     &.has-active-child > .el-sub-menu__title {
       color: var(--el-color-primary-light-3) !important;
