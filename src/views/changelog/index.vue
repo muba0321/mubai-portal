@@ -1,0 +1,304 @@
+<template>
+  <div class="changelog-container">
+    <el-card shadow="never" class="changelog-card">
+      <template #header>
+        <div class="changelog-header">
+          <span class="changelog-title">版本更新记录</span>
+          <el-tag type="info" size="small">当前版本 v{{ appVersion }}</el-tag>
+        </div>
+      </template>
+
+      <el-timeline>
+        <el-timeline-item
+          v-for="(version, index) in versions"
+          :key="version.version"
+          :type="index === 0 ? 'primary' : 'info'"
+          :hollow="index !== 0"
+          :size="index === 0 ? 'large' : 'default'"
+          :timestamp="version.date"
+          placement="top"
+        >
+          <el-card
+            shadow="hover"
+            class="version-card"
+            :class="{ 'version-card--latest': index === 0 }"
+            @click="toggleVersion(version)"
+          >
+            <div class="version-header">
+              <div class="version-info">
+                <el-tag :type="index === 0 ? 'primary' : 'info'" size="small" effect="dark">
+                  v{{ version.version }}
+                </el-tag>
+                <span class="version-name">{{ version.name }}</span>
+              </div>
+              <el-icon class="expand-icon" :class="{ 'expand-icon--rotated': version.expanded }">
+                <ArrowDown />
+              </el-icon>
+            </div>
+
+            <el-collapse-transition>
+              <div v-show="version.expanded" class="version-details">
+                <div v-if="version.summary" class="version-summary">
+                  {{ version.summary }}
+                </div>
+                <div v-for="(section, key) in version.changes" :key="key" class="change-section">
+                  <div class="change-section-title">
+                    <el-icon>
+                      <component :is="sectionIcons[key] || CircleCheck" />
+                    </el-icon>
+                    <span>{{ sectionLabels[key] || key }}</span>
+                  </div>
+                  <ul class="change-list">
+                    <li v-for="(item, i) in section" :key="i">{{ item }}</li>
+                  </ul>
+                </div>
+              </div>
+            </el-collapse-transition>
+          </el-card>
+        </el-timeline-item>
+      </el-timeline>
+    </el-card>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from "vue";
+import { ArrowDown, CircleCheck, Plus, Edit, Delete } from "@element-plus/icons-vue";
+
+import pkg from "@/../package.json";
+
+const appVersion = pkg.version;
+
+const sectionLabels: Record<string, string> = {
+  feat: "新增功能",
+  fix: "问题修复",
+  optimize: "优化改进",
+  refactor: "重构调整",
+  chore: "工程维护",
+};
+
+const sectionIcons: Record<string, any> = {
+  feat: Plus,
+  fix: Edit,
+  optimize: CircleCheck,
+  refactor: Edit,
+  chore: CircleCheck,
+};
+
+interface ChangeSection {
+  [key: string]: string[];
+}
+
+interface Version {
+  version: string;
+  name: string;
+  date: string;
+  summary?: string;
+  changes: ChangeSection;
+  expanded: boolean;
+}
+
+const versions = ref<Version[]>([
+  {
+    version: "1.0.3",
+    name: "部署配置统一 & 侧边栏优化",
+    date: "2026-05-15",
+    summary: "统一本地和服务器部署配置，优化侧边栏导航体验。",
+    expanded: true,
+    changes: {
+      feat: ["侧边栏新增 Element Plus 图标（HomeFilled / Monitor / DataBoard / List）", "新增版本更新记录页面"],
+      fix: ["修复 AI 模型调用失败问题（qwen-coder-plus 改为 qwen3.5-plus）", "统一前后端部署配置，解决服务器部署路径不一致问题"],
+      optimize: ["侧边栏菜单项添加圆角、hover 过渡动画、激活态渐变效果", "简化 nginx 代理配置，统一使用 /prod-api/ 前缀", "后端 .env.production 数据库连接改为 Docker 容器名"],
+      chore: ["新增 docker-compose.prod.yml 和 deploy/docker-compose.yml", "更新 .env.production.example 模板"],
+    },
+  },
+  {
+    version: "1.0.2",
+    name: "数据库管理与 AI 辅助",
+    date: "2026-05-14",
+    summary: "新增数据库管理模块，支持自然语言转 SQL。",
+    expanded: false,
+    changes: {
+      feat: ["新增数据库管理页面（SQL 查询、表结构、表数据）", "新增创建数据库功能", "集成通义千问 AI 模型，实现自然语言转 SQL"],
+      optimize: ["数据库管理页面新增连接信息显示"],
+      chore: ["后端新增 database.py 视图模块"],
+    },
+  },
+  {
+    version: "1.0.1",
+    name: "CMDB 与待办管理",
+    date: "2026-05-13",
+    summary: "新增虚拟机管理和待办管理模块。",
+    expanded: false,
+    changes: {
+      feat: ["新增虚拟机管理页面（列表、搜索、分页）", "新增待办管理模块（项目维度、树形子待办）", "新增项目 CRUD 和待办项 CRUD"],
+      optimize: ["优化首页 Dashboard 布局"],
+    },
+  },
+  {
+    version: "1.0.0",
+    name: "项目初始化",
+    date: "2026-04-24",
+    summary: "SRE Portal 项目正式起步。",
+    expanded: false,
+    changes: {
+      feat: ["用户登录/登出", "首页 Dashboard", "系统基础框架搭建"],
+      chore: ["前端 Vue3 + Vite + Element Plus + TypeScript", "后端 Flask + SQLAlchemy + JWT 认证", "Docker 容器化部署方案"],
+    },
+  },
+]);
+
+function toggleVersion(version: Version) {
+  version.expanded = !version.expanded;
+}
+</script>
+
+<style lang="scss" scoped>
+.changelog-container {
+  padding: 20px;
+}
+
+.changelog-card {
+  max-width: 800px;
+  margin: 0 auto;
+
+  :deep(.el-card__header) {
+    padding: 16px 20px;
+  }
+}
+
+.changelog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .changelog-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+}
+
+.version-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--el-border-color-lighter);
+
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  &--latest {
+    border-color: var(--el-color-primary-light-5);
+    background: linear-gradient(135deg, rgba(64, 158, 255, 0.03), rgba(64, 158, 255, 0.01));
+  }
+
+  :deep(.el-card__body) {
+    padding: 16px 20px;
+  }
+}
+
+.version-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .version-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .version-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+
+  .expand-icon {
+    font-size: 16px;
+    color: var(--el-text-color-secondary);
+    transition: transform 0.3s ease;
+
+    &--rotated {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.version-details {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+}
+
+.version-summary {
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.6;
+}
+
+.change-section {
+  margin-bottom: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.change-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+
+  .el-icon {
+    font-size: 14px;
+  }
+}
+
+.change-list {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+
+  li {
+    position: relative;
+    padding: 4px 0;
+    padding-left: 12px;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.6;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: var(--el-color-primary-light-5);
+    }
+  }
+}
+
+// Timeline 样式覆盖
+:deep(.el-timeline-item__timestamp) {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+:deep(.el-timeline-item__node) {
+  border-width: 2px;
+}
+
+:deep(.el-timeline-item__node--primary) {
+  background-color: var(--el-color-primary) !important;
+}
+</style>

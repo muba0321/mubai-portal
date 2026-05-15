@@ -96,6 +96,22 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
+  // 版本记录
+  {
+    path: "/changelog",
+    component: Layout,
+    redirect: "/changelog/index",
+    meta: { title: "版本记录", icon: "el-icon-Stamp" },
+    children: [
+      {
+        path: "index",
+        name: "Changelog",
+        component: () => import("@/views/changelog/index.vue"),
+        meta: { title: "版本记录", icon: "el-icon-Stamp" },
+      },
+    ],
+  },
+
   // 隐藏路由
   {
     path: "/401",
