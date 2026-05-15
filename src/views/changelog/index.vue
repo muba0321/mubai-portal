@@ -100,6 +100,18 @@ interface Version {
 
 const versions = ref<Version[]>([
   {
+    version: "1.0.4",
+    name: "导航栏优化 & 版本管理",
+    date: "2026-05-15",
+    summary: "移除 Logo 图标，新增版本记录页面，侧边栏样式优化，前后端版本统一。",
+    expanded: true,
+    changes: {
+      feat: ["新增版本记录页面（时间线布局，点击展开/收起）", "侧边栏新增版本记录导航项"],
+      optimize: ["移除侧边栏顶部 Logo 图标，仅保留文字", "侧边栏菜单项圆角 + 渐变激活态 + hover 过渡动画", "统一使用 Element Plus 内置图标（HomeFilled / Monitor / DataBoard / List / Stamp）"],
+      chore: ["前端 package.json 版本号升级至 1.0.4", "后端新增 VERSION 文件"],
+    },
+  },
+  {
     version: "1.0.3",
     name: "部署配置统一 & 侧边栏优化",
     date: "2026-05-15",
