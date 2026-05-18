@@ -112,6 +112,22 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
+  // 系统设置
+  {
+    path: "/setting",
+    component: Layout,
+    redirect: "/setting/index",
+    meta: { title: "系统设置", icon: "el-icon-Setting" },
+    children: [
+      {
+        path: "index",
+        name: "SystemSetting",
+        component: () => import("@/views/setting/index.vue"),
+        meta: { title: "系统设置", icon: "el-icon-Setting" },
+      },
+    ],
+  },
+
   // 隐藏路由
   {
     path: "/401",

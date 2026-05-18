@@ -22,3 +22,4 @@ export * from "./tenant-plan";
 export * from "./file";
 export * from "./codegen";
 export * from "./todo";
+export * from "./setting";

@@ -21,6 +21,7 @@ import { setupDirective } from "@/directives";
 import { setupI18n } from "@/lang";
 import { setupRouter } from "@/router";
 import { setupStore } from "@/store";
+import { useSystemSettingStore } from "@/store/modules/system-setting";
 
 // ===== 全局组件 =====
 import * as ElementPlusIcons from "@element-plus/icons-vue";
@@ -39,6 +40,14 @@ const app = createApp(App);
 setupDirective(app);
 setupRouter(app);
 setupStore(app);
+
+// 加载系统配置（公开接口，无需鉴权）
+const systemSettingStore = useSystemSettingStore();
+systemSettingStore.restoreFromCache();
+systemSettingStore.fetchSettings().catch(() => {
+  // 静默失败，使用缓存数据
+});
+
 setupI18n(app);
 
 // 2️⃣ 全局组件（Element Plus 图标）
