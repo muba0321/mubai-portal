@@ -35,7 +35,7 @@ export const defaults = {
   showWatermark: false,
   pageSwitchingAnimation: "fade-slide",
   showSettings: true,
-  watermarkContent: pkg.name,
+  watermarkContent: "MUBAI Portal",
 } as const;
 
 // ============================================

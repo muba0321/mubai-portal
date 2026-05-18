@@ -112,18 +112,24 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
-  // 系统设置
+  // 系统管理
   {
-    path: "/setting",
+    path: "/system",
     component: Layout,
-    redirect: "/setting/index",
-    meta: { title: "系统设置", icon: "el-icon-Setting" },
+    redirect: "/system/users",
+    meta: { title: "系统管理", icon: "el-icon-Setting" },
     children: [
       {
-        path: "index",
+        path: "users",
+        name: "UserManage",
+        component: () => import("@/views/system/users/index.vue"),
+        meta: { title: "用户管理", icon: "el-icon-UserFilled" },
+      },
+      {
+        path: "settings",
         name: "SystemSetting",
         component: () => import("@/views/setting/index.vue"),
-        meta: { title: "系统设置", icon: "el-icon-Setting" },
+        meta: { title: "配置管理", icon: "el-icon-Tools" },
       },
     ],
   },

@@ -4,7 +4,7 @@ import type { LoginRequest, LoginResponse } from "@/types/api/auth";
 const AUTH_BASE_URL = "/api/v1/auth";
 
 const AuthAPI = {
-  /** 登录接口*/
+  /** 登录接口 */
   login(data: LoginRequest) {
     return request<any, LoginResponse>({
       url: `${AUTH_BASE_URL}/login`,
@@ -19,7 +19,7 @@ const AuthAPI = {
     });
   },
 
-  /** 刷新 token 接口*/
+  /** 刷新 token 接口 */
   refreshToken(refreshToken: string) {
     return request<any, LoginResponse>({
       url: `${AUTH_BASE_URL}/refresh-token`,
