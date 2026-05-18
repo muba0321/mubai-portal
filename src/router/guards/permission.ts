@@ -6,7 +6,11 @@ import { useTenantStoreHook } from "@/store/modules/tenant";
 import { isTenantEnabled } from "@/utils/tenant";
 import { addRecentMenu } from "@/composables/useRecentMenus";
 import { AuthStorage } from "@/utils/auth";
-import AuthAPI from "@/api/auth";
+
+/**
+ * 无需登录即可访问的白名单路由
+ */
+const WHITE_LIST = ["/login", "/401", "/404"];
 
 /**
  * 路由权限守卫
@@ -17,34 +21,47 @@ export function setupPermissionGuard() {
 
     try {
       const userStore = useUserStore();
+      const permissionStore = usePermissionStore();
+      const hasToken = !!AuthStorage.getAccessToken();
 
-      // 清除旧 token，重新登录获取有效 token
-      AuthStorage.clearAuth();
-
-      try {
-        const { accessToken, refreshToken } = await AuthAPI.login({
-          username: "admin",
-          password: "admin123",
-        });
-        AuthStorage.setTokens(accessToken, refreshToken, true);
-      } catch {
-        console.warn("自动登录失败，继续使用 mock 信息");
+      // 白名单路由直接放行
+      if (WHITE_LIST.includes(to.path)) {
+        // 已登录用户访问登录页，重定向到首页
+        if (to.path === "/login" && hasToken) {
+          next({ path: "/" });
+          return;
+        }
+        next();
+        return;
       }
 
-      userStore.userInfo = {
-        userId: 1,
-        username: "admin",
-        nickname: "Admin",
-        avatar: "",
-        roles: ["admin"],
-        perms: ["*:*:*"],
-      } as any;
+      // 无 token：重定向到登录页
+      if (!hasToken) {
+        next({ path: "/login", query: { redirect: to.fullPath } });
+        return;
+      }
 
-      const permissionStore = usePermissionStore();
-
-      // 路由生成
+      // 有 token 但路由未生成：获取用户信息并生成路由
       if (!permissionStore.isRouteGenerated) {
         await initTenantContext();
+
+        try {
+          // 从后端获取真实用户信息
+          const userInfo = await userStore.getUserInfo();
+          userStore.userInfo = {
+            userId: userInfo.userId,
+            username: userInfo.username,
+            nickname: userInfo.username,
+            avatar: userInfo.avatar || "",
+            roles: [userInfo.role],
+            perms: ["*:*:*"],
+          } as any;
+        } catch {
+          // 获取用户信息失败（token 过期等），清除状态跳转登录
+          userStore.resetUserState();
+          next({ path: "/login", query: { redirect: to.fullPath } });
+          return;
+        }
 
         const dynamicRoutes = await permissionStore.generateRoutes();
         dynamicRoutes.forEach((route: RouteRecordRaw) => {
@@ -55,7 +72,7 @@ export function setupPermissionGuard() {
         return;
       }
 
-      // 路由 404 检查
+      // 路由已生成，检查 404
       if (to.matched.length === 0) {
         next("/404");
         return;

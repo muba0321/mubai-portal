@@ -3,8 +3,8 @@
     <div class="flex-y-center">
       <!-- 菜单折叠按钮 -->
       <Hamburger :is-active="isSidebarOpened" @toggle-click="toggleSideBar" />
-      <!-- 面包屑导行栏-->
-      <Breadcrumb />
+      <!-- 面包屑导航栏（首页不显示） -->
+      <Breadcrumb v-if="showBreadcrumb" />
     </div>
     <!-- 导航栏操作区域-->
     <div class="navbar__actions">
@@ -21,6 +21,12 @@ import Breadcrumb from "@/components/Breadcrumb/index.vue";
 const appStore = useAppStore();
 
 const isSidebarOpened = computed(() => appStore.sidebar.opened);
+const currentRoute = useRoute();
+
+// 首页不显示面包屑
+const showBreadcrumb = computed(() => {
+  return currentRoute.name !== "Dashboard";
+});
 
 function toggleSideBar() {
   appStore.toggleSidebar();

@@ -2,12 +2,14 @@
   <BaseLayout>
     <!-- 左侧菜单 -->
     <div class="layout__sidebar" :class="{ 'layout__sidebar--collapsed': !isSidebarOpen }">
-      <div :class="{ 'has-logo': showLogo }" class="layout-sidebar">
-        <LayoutLogo v-if="showLogo" :collapse="!isSidebarOpen" />
-        <el-scrollbar>
-          <LayoutSidebar :data="routes" base-path="" />
-        </el-scrollbar>
+      <div class="sidebar__header">
+        <div class="sidebar__header-inner">
+          <span v-if="isSidebarOpen" class="sidebar__title">Mubai Portal</span>
+        </div>
       </div>
+      <el-scrollbar class="sidebar__scrollbar">
+        <LayoutSidebar :data="routes" base-path="" />
+      </el-scrollbar>
     </div>
 
     <!-- 主内容区 -->
@@ -28,13 +30,12 @@
 <script setup lang="ts">
 import { useLayout } from "./useLayout";
 import BaseLayout from "./BaseLayout.vue";
-import LayoutLogo from "./components/LayoutLogo.vue";
 import LayoutNavbar from "./components/LayoutNavbar.vue";
 import LayoutTagsView from "./components/LayoutTagsView.vue";
 import LayoutMain from "./components/LayoutMain.vue";
 import LayoutSidebar from "./components/LayoutSidebar.vue";
 
-const { showTagsView, showLogo, isSidebarOpen, routes } = useLayout();
+const { isSidebarOpen, routes } = useLayout();
 </script>
 
 <style lang="scss" scoped>
@@ -52,23 +53,42 @@ const { showTagsView, showLogo, isSidebarOpen, routes } = useLayout();
 
     &--collapsed {
       width: $sidebar-width-collapsed;
+
+      .sidebar__header-inner {
+        justify-content: center;
+      }
+
+      .sidebar__title {
+        display: none;
+      }
     }
 
-    .layout-sidebar {
-      position: relative;
-      height: 100%;
-      background-color: var(--menu-background);
-      transition: width 0.28s;
+    .sidebar__header {
+      width: 100%;
+      height: $navbar-height;
+      background-color: $sidebar-logo-background;
+      border-right: none;
 
-      &.has-logo {
-        .el-scrollbar {
-          height: calc(100vh - $navbar-height);
-        }
+      .sidebar__header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
       }
 
-      :deep(.el-menu) {
-        border: none;
+      .sidebar__title {
+        font-size: 14px;
+        font-weight: bold;
+        color: $sidebar-logo-text-color;
       }
+    }
+
+    .sidebar__scrollbar {
+      height: calc(100vh - $navbar-height);
+    }
+
+    :deep(.el-menu) {
+      border: none;
     }
   }
 

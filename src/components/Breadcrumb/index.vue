@@ -15,7 +15,6 @@
 </template>
 
 <script setup lang="ts">
-import { RouteLocationMatched } from "vue-router";
 import { compile } from "path-to-regexp";
 import router from "@/router";
 import { translateRouteTitle } from "@/lang/utils";
@@ -31,21 +30,17 @@ const breadcrumbs = ref<Array<RouteLocationMatched>>([]);
 
 function getBreadcrumb() {
   let matched = currentRoute.matched.filter((item) => item.meta && item.meta.title);
-  const first = matched[0];
-  if (!isDashboard(first)) {
-    matched = [{ path: "/dashboard", meta: { title: "dashboard" } } as any].concat(matched);
-  }
+
+  // 去重：父路由和子路由 title 相同时，跳过父路由
+  matched = matched.filter((item, idx) => {
+    const next = matched[idx + 1];
+    if (next && item.meta.title === next.meta.title) return false;
+    return true;
+  });
+
   breadcrumbs.value = matched.filter((item) => {
     return item.meta && item.meta.title && item.meta.breadcrumb !== false;
   });
-}
-
-function isDashboard(route: RouteLocationMatched) {
-  const name = route && route.name;
-  if (!name) {
-    return false;
-  }
-  return name.toString().trim().toLocaleLowerCase() === "Dashboard".toLocaleLowerCase();
 }
 
 function handleLink(item: any) {
