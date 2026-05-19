@@ -2,6 +2,17 @@
 
 All notable changes to SRE Portal Frontend will be documented in this file.
 
+## [1.0.5] - 2026-05-19
+
+### Fixed
+- 修复 Vite proxy rewrite 双重 /api 前缀问题，所有 API 路径改为 /v1/
+
+### Changed
+- 简化登录页：移除左侧企业宣传面板，表单居中展示
+- 用户信息从顶部导航栏迁移至左侧边栏底部（头像+用户名+角色+退出）
+- 头像使用 Element Plus el-avatar 组件，无头像时显示 User 图标
+- 支持侧边栏收起时仅显示头像，居中布局
+
 ## [1.0.0] - 2026-05-13
 
 ### Added
