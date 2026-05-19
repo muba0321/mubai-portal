@@ -14,7 +14,7 @@ export interface UserQuery {
   keyword?: string;
 }
 
-const BASE_URL = "/api/v1/users";
+const BASE_URL = "/v1/users";
 
 const UserAPI = {
   /** 获取用户列表 */

@@ -1,6 +1,6 @@
 import request from "@/utils/request";
 
-const DATABASE_BASE_URL = "/api/v1/database";
+const DATABASE_BASE_URL = "/v1/database";
 
 const DatabaseAPI = {
   /** 获取数据库列表 */

@@ -6,7 +6,7 @@ import type {
   TenantPlanQueryParams,
 } from "@/types/api/tenant-plan";
 
-const TENANT_PLAN_BASE_URL = "/api/v1/tenant-plans";
+const TENANT_PLAN_BASE_URL = "/v1/tenant-plans";
 
 const TenantPlanAPI = {
   /** 获取租户套餐分页数据 */

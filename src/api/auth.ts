@@ -1,7 +1,7 @@
 import request from "@/utils/request";
 import type { LoginRequest, LoginResponse } from "@/types/api/auth";
 
-const AUTH_BASE_URL = "/api/v1/auth";
+const AUTH_BASE_URL = "/v1/auth";
 
 const AuthAPI = {
   /** 登录接口 */

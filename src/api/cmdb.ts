@@ -1,6 +1,6 @@
 import request from "@/utils/request";
 
-const CMDB_BASE_URL = "/api/v1/cmdb";
+const CMDB_BASE_URL = "/v1/cmdb";
 
 export interface VmItem {
   id: number;

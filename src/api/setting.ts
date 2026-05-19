@@ -1,6 +1,6 @@
 import request from "@/utils/request";
 
-const BASE_URL = "/api/v1/configs";
+const BASE_URL = "/v1/configs";
 
 export interface ConfigEntry {
   id: number;

@@ -1,6 +1,6 @@
 import request from "@/utils/request";
 
-const DASHBOARD_BASE_URL = "/api/v1/dashboard";
+const DASHBOARD_BASE_URL = "/v1/dashboard";
 
 export interface SystemStatus {
   serverOnline: number;

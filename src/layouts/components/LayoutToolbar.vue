@@ -37,14 +37,14 @@
     <div class="navbar-actions__item">
       <el-dropdown trigger="click">
         <div class="user-profile">
-          <div style="width: 28px; height: 28px; overflow: hidden; border-radius: 50%">
-            <img
-              :src="userStore.userInfo.avatar"
-              class="user-profile__avatar"
-              style="width: 100%; height: 100%; object-fit: cover; object-position: center"
-            />
-          </div>
-          <span class="user-profile__name">{{ userStore.userInfo.username }}</span>
+          <el-avatar
+            :size="28"
+            :src="userStore.userInfo.avatar || undefined"
+            class="user-profile__avatar"
+          >
+            <el-icon :size="16"><User /></el-icon>
+          </el-avatar>
+          <span class="user-profile__name">{{ userStore.userInfo.username || "用户" }}</span>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -72,6 +72,7 @@ import { useRoute, useRouter } from "vue-router";
 import { defaults } from "@/settings";
 import { DeviceEnum, SidebarColor, ThemeMode, LayoutMode } from "@/enums/settings";
 import { useAppStore, useSettingsStore, useUserStore } from "@/store";
+import { User } from "@element-plus/icons-vue";
 
 // 导入子组件
 import CommandPalette from "@/components/CommandPalette/index.vue";
@@ -241,11 +242,9 @@ function handleSettingsClick() {
     height: 44px;
     padding: 0 8px;
 
-    &__avatar {
+    :deep(.el-avatar) {
       flex-shrink: 0;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
+      background: var(--el-color-primary);
     }
 
     &__name {
