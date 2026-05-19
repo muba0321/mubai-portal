@@ -100,6 +100,18 @@ interface Version {
 
 const versions = ref<Version[]>([
   {
+    version: "1.0.5",
+    name: "API 路径修复 & 用户信息迁移",
+    date: "2026-05-19",
+    summary: "修复 Vite proxy 双重 /api 前缀问题，用户信息从顶部导航栏迁移至侧边栏底部，登录页简化。",
+    expanded: true,
+    changes: {
+      fix: ["修复 Vite proxy rewrite 双重 /api 前缀问题，所有 API 路径从 /api/v1/ 改为 /v1/", "修复 Docker nginx upstream 服务名不匹配导致容器崩溃（backend → sre-portal-backend）"],
+      optimize: ["简化登录页：移除左侧企业宣传面板，表单居中展示", "用户信息从顶部导航栏迁移至左侧边栏底部（头像+用户名+角色+退出）", "头像使用 Element Plus el-avatar 组件，无头像时显示 User 图标", "侧边栏收起时仅显示头像，居中布局"],
+      chore: ["前后端版本号升级至 1.0.5", "更新 CHANGELOG 记录"],
+    },
+  },
+  {
     version: "1.0.4",
     name: "导航栏优化 & 版本管理",
     date: "2026-05-15",
