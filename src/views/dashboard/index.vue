@@ -74,10 +74,19 @@
           <el-icon><Link /></el-icon>
           常用链接
         </div>
+        <div class="category-tabs">
+          <span
+            v-for="cat in allCategories"
+            :key="cat"
+            class="category-tab"
+            :class="{ active: activeCategory === cat }"
+            @click="activeCategory = cat"
+          >{{ cat }}</span>
+        </div>
         <el-button text size="small" type="primary" @click="showManageDialog">管理链接</el-button>
       </div>
       <div class="links-list">
-        <div v-for="link in commonLinks" :key="link.title" class="link-item" @click="handleLinkClick(link)">
+        <div v-for="link in filteredLinks" :key="link.title" class="link-item" @click="handleLinkClick(link)">
           <div class="link-icon" :style="{ backgroundColor: link.bgColor }">
             <el-icon :size="20" :color="link.color"><component :is="link.icon" /></el-icon>
           </div>
@@ -88,6 +97,7 @@
           <el-icon class="link-arrow"><ArrowRight /></el-icon>
         </div>
       </div>
+      <div v-if="filteredLinks.length === 0" class="links-empty">暂无链接</div>
     </div>
 
     <!-- 管理链接弹窗 -->
@@ -99,6 +109,7 @@
       </div>
       <el-table :data="manageLinks" border stripe>
         <el-table-column label="名称" prop="title" min-width="120" />
+        <el-table-column label="分类" prop="category" width="100" />
         <el-table-column label="链接" prop="url" min-width="180" show-overflow-tooltip />
         <el-table-column label="图标" prop="icon" width="100" />
         <el-table-column label="排序" prop="sort" width="60" align="center" />
@@ -128,6 +139,11 @@
                 <span>{{ name }}</span>
               </div>
             </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="分类" prop="category">
+          <el-select v-model="editForm.category" placeholder="选择分类（可选）" style="width: 100%" clearable>
+            <el-option v-for="c in categoryOptions" :key="c" :label="c" :value="c" />
           </el-select>
         </el-form-item>
         <el-form-item label="描述" prop="description">
@@ -187,6 +203,33 @@ const statusItems = ref<any[]>([]);
 
 // 常用链接（从 API 加载）
 const commonLinks = ref<any[]>([]);
+let hasAutoCategorized = false;
+
+// 分类标签
+const allCategories = ["全部", "监控工具", "运维管理", "开发工具", "文档资料", "其他"];
+const categoryOptions = allCategories.slice(1); // 去掉"全部"，用于编辑弹窗
+const activeCategory = ref("全部");
+
+// 根据名称/URL 自动分类
+function autoCategorize(item: any): string {
+  const t = (item.title || "").toLowerCase();
+  const u = (item.url || "").toLowerCase();
+  if (t.includes("监控") || t.includes("grafana") || t.includes("prometheus") || t.includes("大盘") || t.includes("告警")) return "监控工具";
+  if (t.includes("cmdb") || t.includes("dns") || t.includes("系统配置") || t.includes("系统设置") || t.includes("设置") || t.includes("配置") || t.includes("极客") || t.includes("管理")) return "运维管理";
+  if (t.includes("coding") || t.includes("开发") || t.includes("openclaw") || t.includes("ci") || t.includes("jenkins") || t.includes("git")) return "开发工具";
+  if (t.includes("文档") || t.includes("资料") || t.includes("飞书") || t.includes("帮助") || t.includes("help") || t.includes("doc")) return "文档资料";
+  return "其他";
+}
+
+// 筛选后的链接列表
+const filteredLinks = computed(() => {
+  const links = commonLinks.value.map(link => ({
+    ...link,
+    category: link.category || autoCategorize(link),
+  }));
+  if (activeCategory.value === "全部") return links;
+  return links.filter(l => l.category === activeCategory.value);
+});
 
 // 映射后端图标名到组件
 const iconMap: Record<string, any> = {
@@ -222,7 +265,13 @@ async function fetchCommonLinks() {
       color: "#409eff",
       url: item.url,
       id: item.id,
+      category: item.category,
     }));
+    // 首次加载时自动分类并保存（只执行一次）
+    if (!hasAutoCategorized) {
+      hasAutoCategorized = true;
+      DashboardAPI.autoCategorize();
+    }
   } catch {
     // 使用默认值
   }
@@ -286,12 +335,13 @@ const manageLinks = ref<any[]>([]);
 // 编辑链接弹窗
 const editDialogVisible = ref(false);
 const editFormRef = ref();
-const editForm = reactive<{ id?: number; title: string; url: string; icon: string; description: string; sort: number }>({
+const editForm = reactive<{ id?: number; title: string; url: string; icon: string; description: string; category: string; sort: number }>({
   id: undefined,
   title: "",
   url: "",
   icon: "Link",
   description: "",
+  category: "",
   sort: 0,
 });
 const editRules = {
@@ -309,13 +359,14 @@ function showManageDialog() {
     url: l.url,
     icon: Object.keys(iconMap).find(k => iconMap[k] === l.icon) || "Link",
     description: l.desc,
+    category: l.category,
     sort: 0,
   }));
   manageDialogVisible.value = true;
 }
 
 function handleAddLink() {
-  Object.assign(editForm, { id: undefined, title: "", url: "", icon: "Link", description: "", sort: 0 });
+  Object.assign(editForm, { id: undefined, title: "", url: "", icon: "Link", description: "", category: "", sort: 0 });
   editDialogVisible.value = true;
 }
 
@@ -389,6 +440,15 @@ function handleDeleteLink(row: any) {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 20px 12px; border-bottom: 1px solid #ebeef5;
   .panel-title { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; color: #303133; }
+  .category-tabs {
+    display: flex; gap: 4px; margin-left: 24px;
+    .category-tab {
+      padding: 4px 12px; border-radius: 16px; font-size: 13px; color: #606266;
+      cursor: pointer; transition: all 0.2s; white-space: nowrap;
+      &:hover { background: #f0f5ff; color: #409eff; }
+      &.active { background: #409eff; color: #fff; font-weight: 500; }
+    }
+  }
 }
 
 .recent-visits {
@@ -421,6 +481,7 @@ function handleDeleteLink(row: any) {
 .common-links-panel {
   background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   .links-list { padding: 8px 12px; }
+  .links-empty { text-align: center; padding: 24px; color: #909399; font-size: 14px; }
   .link-item {
     display: flex; align-items: center; gap: 12px; padding: 12px 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;
     &:hover { background: #f5f7fa; }

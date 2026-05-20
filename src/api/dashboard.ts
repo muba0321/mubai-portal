@@ -18,6 +18,7 @@ export interface CommonLink {
   description: string;
   url: string;
   icon: string;
+  category?: string;
   sort: number;
 }
 
@@ -84,6 +85,14 @@ const DashboardAPI = {
     return request({
       url: `${DASHBOARD_BASE_URL}/common-links/${id}`,
       method: "delete",
+    });
+  },
+
+  /** 自动分类现有链接 */
+  autoCategorize() {
+    return request({
+      url: `${DASHBOARD_BASE_URL}/common-links/auto-categorize`,
+      method: "post",
     });
   },
 };
