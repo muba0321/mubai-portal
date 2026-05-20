@@ -48,6 +48,22 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
+  // 监控中心
+  {
+    path: "/monitoring",
+    component: Layout,
+    redirect: "/monitoring/index",
+    meta: { title: "监控中心", icon: "el-icon-Monitor", sort: 3 },
+    children: [
+      {
+        path: "index",
+        name: "Monitoring",
+        component: () => import("@/views/monitoring/index.vue"),
+        meta: { title: "监控大屏", icon: "el-icon-Odometer", keepAlive: true },
+      },
+    ],
+  },
+
   // CMDB 管理
   {
     path: "/cmdb",
