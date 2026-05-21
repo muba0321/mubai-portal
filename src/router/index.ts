@@ -61,6 +61,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/monitoring/index.vue"),
         meta: { title: "监控大屏", icon: "el-icon-Odometer", keepAlive: true },
       },
+      {
+        path: "grafana",
+        name: "GrafanaManage",
+        component: () => import("@/views/grafana/index.vue"),
+        meta: { title: "面板管理", icon: "el-icon-DataBoard" },
+      },
     ],
   },
 
