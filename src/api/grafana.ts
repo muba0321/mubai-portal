@@ -120,6 +120,21 @@ const GrafanaAPI = {
       method: "delete",
     });
   },
+
+  /** AI 辅助生成/修改面板（同步，AI 生成完成后返回结果） */
+  nlToPanel(data: {
+    dashboard_uid: string;
+    panel_id?: number;
+    description: string;
+    operation: "add" | "modify" | "delete";
+  }) {
+    return request<any, any>({
+      url: `${GRAFANA_BASE_URL}/nl-to-panel`,
+      method: "post",
+      data,
+      timeout: 180000,  // AI 调用可能耗时 60-90 秒
+    });
+  },
 };
 
 export default GrafanaAPI;
