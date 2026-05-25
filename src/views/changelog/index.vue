@@ -100,6 +100,18 @@ interface Version {
 
 const versions = ref<Version[]>([
   {
+    version: "1.0.6",
+    name: "监控面板 AI 管理模块 & 服务器配置优化",
+    date: "2026-05-25",
+    summary: "新增 Grafana 监控面板 AI 辅助管理（自然语言生成/修改面板），Prometheus API 代理查询，Grafana API Key 迁移至数据库存储，登录页版权信息更新。",
+    expanded: true,
+    changes: {
+      feat: ["新增 Grafana 面板管理页面（面板 CRUD、数据源列表、文件夹管理）", "新增 AI 辅助面板生成（自然语言描述 → Grafana 面板 JSON，支持新增/修改/删除）", "新增 Prometheus API 代理查询端点（POST /v1/monitoring/query）", "新增快捷模板按钮（CPU/内存/磁盘/网络/负载/TCP）", "新增 AI 结果预览弹窗（JSON 预览 + 变更说明 + 导入指引）"],
+      optimize: ["Grafana API Key 从 docker-compose.yml 迁移至数据库 sys_config 表，提升安全性", "登录页底部版权信息更新", "简化 AI 面板保存流程，支持 provisioned 仪表盘导入指引"],
+      chore: ["前后端版本号升级至 1.0.6", "更新 CHANGELOG 记录", "新增交接文档和 K8S/Jenkins 规划文档"],
+    },
+  },
+  {
     version: "1.0.5",
     name: "API 路径修复 & 用户信息迁移",
     date: "2026-05-19",
