@@ -134,6 +134,56 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
+  // 告警管理
+  {
+    path: "/alerting",
+    component: Layout,
+    redirect: "/alerting/index",
+    meta: { title: "告警管理", icon: "el-icon-Bell", sort: 4 },
+    children: [
+      {
+        path: "index",
+        name: "Alerting",
+        component: () => import("@/views/alerting/index.vue"),
+        meta: { title: "指标与告警", icon: "el-icon-Bell", keepAlive: true },
+      },
+    ],
+  },
+
+  // 运维中心
+  {
+    path: "/ops",
+    component: Layout,
+    redirect: "/ops/executor",
+    meta: { title: "运维中心", icon: "el-icon-Connection" },
+    children: [
+      {
+        path: "executor",
+        name: "AnsibleExecutor",
+        component: () => import("@/views/ops/Executor.vue"),
+        meta: { title: "作业执行", icon: "el-icon-Pointer" },
+      },
+      {
+        path: "history",
+        name: "AnsibleHistory",
+        component: () => import("@/views/ops/History.vue"),
+        meta: { title: "作业历史", icon: "el-icon-Document" },
+      },
+      {
+        path: "schedules",
+        name: "AnsibleSchedules",
+        component: () => import("@/views/ops/Schedules.vue"),
+        meta: { title: "定时任务", icon: "el-icon-Clock" },
+      },
+      {
+        path: "inventory",
+        name: "AnsibleInventory",
+        component: () => import("@/views/ops/Inventory.vue"),
+        meta: { title: "主机清单", icon: "el-icon-Grid" },
+      },
+    ],
+  },
+
   // 系统管理
   {
     path: "/system",
@@ -146,6 +196,30 @@ export const constantRoutes: RouteRecordRaw[] = [
         name: "UserManage",
         component: () => import("@/views/system/users/index.vue"),
         meta: { title: "用户管理", icon: "el-icon-UserFilled" },
+      },
+      {
+        path: "dept",
+        name: "DeptManage",
+        component: () => import("@/views/system/dept/index.vue"),
+        meta: { title: "部门管理", icon: "el-icon-OfficeBuilding" },
+      },
+      {
+        path: "role",
+        name: "RoleManage",
+        component: () => import("@/views/system/role/index.vue"),
+        meta: { title: "角色管理", icon: "el-icon-Avatar" },
+      },
+      {
+        path: "menu",
+        name: "MenuManage",
+        component: () => import("@/views/system/menu/index.vue"),
+        meta: { title: "菜单管理", icon: "el-icon-Menu" },
+      },
+      {
+        path: "log",
+        name: "OperLog",
+        component: () => import("@/views/system/log/index.vue"),
+        meta: { title: "操作日志", icon: "el-icon-Document" },
       },
       {
         path: "settings",

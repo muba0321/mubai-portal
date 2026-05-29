@@ -370,6 +370,7 @@ useContextMenuManager();
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/variables.scss" as *;
 .tags-container {
   width: 100%;
   height: $tags-view-height;

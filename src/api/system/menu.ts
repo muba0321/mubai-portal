@@ -1,7 +1,7 @@
 import request from "@/utils/request";
 import type { MenuQueryParams, MenuItem, MenuForm, RouteItem, OptionItem } from "@/types/api";
 
-const MENU_BASE_URL = "/v1/menus";
+const MENU_BASE_URL = "/api/v1/menus";
 
 const MenuAPI = {
   /** 获取当前用户的路由列表 */

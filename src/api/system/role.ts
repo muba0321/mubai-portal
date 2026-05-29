@@ -1,7 +1,7 @@
 import request from "@/utils/request";
 import type { RoleQueryParams, RoleItem, RoleForm, OptionItem } from "@/types/api";
 
-const ROLE_BASE_URL = "/v1/roles";
+const ROLE_BASE_URL = "/api/v1/roles";
 
 const RoleAPI = {
   /** 获取角色分页数据 */

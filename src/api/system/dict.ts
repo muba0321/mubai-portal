@@ -10,7 +10,7 @@ import type {
   OptionItem,
 } from "@/types/api";
 
-const DICT_BASE_URL = "/v1/dicts";
+const DICT_BASE_URL = "/api/v1/dicts";
 
 type DictTagTypeCode = "N" | "P" | "S" | "W" | "I" | "D";
 

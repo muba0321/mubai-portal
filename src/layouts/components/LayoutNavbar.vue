@@ -34,6 +34,7 @@ function toggleSideBar() {
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/variables.scss" as *;
 .navbar {
   display: flex;
   align-items: center;

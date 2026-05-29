@@ -22,6 +22,7 @@ defineProps({
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/variables.scss" as *;
 .logo {
   width: 100%;
   height: $navbar-height;
@@ -38,6 +39,7 @@ defineProps({
 </style>
 
 <style lang="scss">
+@use "@/styles/variables.scss" as *;
 // 顶部布局和混合布局的特殊处理
 .layout-top,
 .layout-mix {

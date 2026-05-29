@@ -89,6 +89,7 @@ function logout() {
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/variables.scss" as *;
 .layout {
   &__sidebar {
     position: fixed;

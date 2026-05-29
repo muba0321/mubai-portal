@@ -47,6 +47,7 @@ const isLogoCollapsed = computed(() => width.value < 768);
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/variables.scss" as *;
 .layout {
   &__header {
     position: sticky;

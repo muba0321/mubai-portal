@@ -15,6 +15,7 @@ const { layoutClass, isSidebarOpen, isMobile, closeSidebar } = useLayout();
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/variables.scss" as *;
 .layout {
   width: 100%;
   height: 100%;

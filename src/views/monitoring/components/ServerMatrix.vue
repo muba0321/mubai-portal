@@ -2,13 +2,15 @@
   <div class="server-matrix">
     <div class="section-header">
       <span class="section-title">基础设施层</span>
-      <span class="badge green">{{ servers.length }} 台在线</span>
+      <span class="badge green">{{ onlineCount }} 台在线</span>
+      <span class="badge grey">{{ servers.length - onlineCount }} 台离线</span>
     </div>
     <div class="server-cards">
       <div v-for="server in servers" :key="server.ip" class="server-card">
         <div class="server-header">
-          <span class="status-dot online"></span>
+          <span class="status-dot" :class="server.online ? 'online' : 'offline'"></span>
           <span class="server-name">{{ server.name }}</span>
+          <span v-if="!server.online" class="offline-label">离线</span>
         </div>
         <div class="server-ip">{{ server.ip }} &middot; {{ server.os }}</div>
 
@@ -49,6 +51,8 @@ import { useIntervalFn } from "@vueuse/core";
 
 const servers = ref<MonitoringAPI.ServerInfo[]>([]);
 
+const onlineCount = computed(() => servers.value.filter(s => s.online).length);
+
 function barColor(val: number): string {
   if (val < 70) return "green";
   if (val < 90) return "orange";
@@ -72,7 +76,7 @@ onUnmounted(() => pause());
 .section-title { font-size: 15px; font-weight: 600; color: #fff; }
 .badge { padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
 .badge.green { background: #1b4332; color: #69db7c; }
-.badge.red { background: #5c1a1a; color: #ff8787; }
+.badge.grey { background: #2d3748; color: #86909c; }
 
 .server-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
 .server-card { background: #152030; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; }
@@ -81,6 +85,8 @@ onUnmounted(() => pause());
 .server-ip { font-size: 11px; color: #86909c; margin-bottom: 12px; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .status-dot.online { background: #69db7c; box-shadow: 0 0 6px #69db7c; }
+.status-dot.offline { background: #ff8787; box-shadow: 0 0 6px #ff8787; }
+.offline-label { font-size: 11px; color: #ff8787; margin-left: 4px; }
 
 .metric-bar { margin-bottom: 8px; }
 .metric-label { font-size: 12px; color: #86909c; margin-bottom: 3px; display: flex; justify-content: space-between; }

@@ -1,6 +1,6 @@
 import request from "@/utils/request";
 
-const GRAFANA_BASE_URL = "/v1/grafana";
+const GRAFANA_BASE_URL = "/api/v1/grafana";
 
 export interface DashboardItem {
   uid: string;

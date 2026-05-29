@@ -7,7 +7,7 @@ import type {
   TodoQueryParams,
 } from "@/types/api";
 
-const BASE_URL = "/v1/todo";
+const BASE_URL = "/api/v1/todo";
 
 /** 项目 API */
 export const ProjectAPI = {

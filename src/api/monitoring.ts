@@ -1,6 +1,6 @@
 import request from "@/utils/request";
 
-const MONITORING_BASE_URL = "/v1/monitoring";
+const MONITORING_BASE_URL = "/api/v1/monitoring";
 
 // ============ 全局总览 ============
 
@@ -26,6 +26,7 @@ export interface ServerInfo {
   name: string;
   ip: string;
   os: string;
+  online: boolean;
   cpu: number;
   memory: number;
   disk: number;

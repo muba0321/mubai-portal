@@ -165,6 +165,7 @@ function resolvePath(routePath: string) {
 </script>
 
 <style lang="scss">
+@use "@/styles/variables.scss" as *;
 /* stylelint-disable no-descending-specificity */
 
 /* ── 图标统一样式 ── */
