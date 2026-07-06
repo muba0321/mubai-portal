@@ -52,10 +52,16 @@ export default defineConfig(({ mode }) => {
       host: "0.0.0.0",
       port: Number(env.VITE_APP_PORT) || 3000,
       proxy: {
+        // 开发环境代理：/dev-api/api/v1/... -> /api/v1/...
         [env.VITE_APP_BASE_API]: {
           target: env.VITE_APP_API_URL,
           changeOrigin: true,
-          rewrite: (path) => path.replace(new RegExp("^" + env.VITE_APP_BASE_API), "/api"),
+          rewrite: (path) => path.replace(new RegExp("^" + env.VITE_APP_BASE_API + "/api"), "/api"),
+        },
+        // 直接代理 /api 前缀的请求到后端（处理绝对路径调用）
+        "/api": {
+          target: env.VITE_APP_API_URL,
+          changeOrigin: true,
         },
       },
     },

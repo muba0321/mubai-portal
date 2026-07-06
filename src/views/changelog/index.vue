@@ -100,6 +100,19 @@ interface Version {
 
 const versions = ref<Version[]>([
   {
+    version: "1.0.7",
+    name: "指标与告警管理 + 运维中心 + 数据库 AI",
+    date: "2026-05-29",
+    summary: "新增指标与告警管理系统、运维中心（Ansible）、数据库 AI SQL 生成、Grafana 面板 AI 辅助生成，完善系统管理模块。",
+    expanded: true,
+    changes: {
+      feat: ["新增指标与告警管理页面（指标库/告警规则/通知渠道/模板市场）", "新增运维中心（作业执行/作业历史/定时任务/主机清单）", "新增 Ansible 运维自动化模块（主机清单/Ping检测/作业调度）", "数据库管理 AI SQL 生成（通义千问 DashScope Coding Plan 对接）", "Grafana 面板 AI 辅助生成（自然语言描述 -> 面板 JSON）", "新增审批流系统（审批模板/审批记录/审批步骤）", "完善系统管理（部门管理/角色管理/菜单管理/操作日志/用户管理）"],
+      fix: ["修复所有 API 路径 /v1/ -> /api/v1/ 统一规范", "修复 auth.py 登录接口 user.role -> user.identity 适配", "修复 Layout 组件 SCSS 变量未导入导致的构建失败", "修复 settings_cache 配置加载问题", "修复 nginx proxy_pass 多余的 /api/ 后缀导致双重路径"],
+      optimize: ["配置 nginx 静态资源缓存策略（JS/CSS 1天缓存 + must-revalidate）", "index.html 设置为 no-cache 强制浏览器获取最新版本", "告警模块响应格式统一为 {code, data} 标准格式", "AI 配置从数据库 sys_config 表加载，支持动态更新"],
+      chore: ["前后端版本统一封版至 v1.0.7", "更新版本记录页面"],
+    },
+  },
+  {
     version: "1.0.6",
     name: "监控面板 AI 管理模块 & 服务器配置优化",
     date: "2026-05-25",
