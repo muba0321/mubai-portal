@@ -40,24 +40,21 @@ pipeline {
                     cd ${APP_DIR}/workspace/sre-portal-frontend
                     tar -czf /tmp/fe-deploy.tar.gz -C dist .
 
-                    # 复制到 215 上的 nginx 容器
-                    ssh root@${DEPLOY_HOST} << 'REMOTE'
-                        mkdir -p /tmp/fe-deploy
-                        cd /tmp/fe-deploy && rm -rf *
-                        tar -xzf /tmp/fe-deploy.tar.gz
+                    # SSH 到 215 部署
+                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "mkdir -p /tmp/fe-deploy && cd /tmp/fe-deploy && rm -rf * && tar -xzf /tmp/fe-deploy.tar.gz"
+                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "docker exec sre-portal-frontend sh -c 'rm -rf /usr/share/nginx/html/assets'"
+                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "docker exec sre-portal-frontend mkdir -p /usr/share/nginx/html/assets"
 
-                        # 更新容器内文件
-                        docker exec sre-portal-frontend sh -c "rm -rf /usr/share/nginx/html/assets"
-                        docker exec sre-portal-frontend mkdir -p /usr/share/nginx/html/assets
+                    # 逐个复制文件
+                    cd /tmp/fe-deploy
+                    for f in assets/*; do
+                        ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "docker cp /tmp/fe-deploy/$f sre-portal-frontend:/usr/share/nginx/html/assets/$(basename $f)"
+                    done
+                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "docker cp /tmp/fe-deploy/index.html sre-portal-frontend:/usr/share/nginx/html/index.html"
 
-                        for f in /tmp/fe-deploy/assets/*; do
-                            docker cp "\$f" "sre-portal-frontend:/usr/share/nginx/html/assets/\$(basename \$f)"
-                        done
-                        docker cp /tmp/fe-deploy/index.html sre-portal-frontend:/usr/share/nginx/html/index.html
-
-                        rm -rf /tmp/fe-deploy /tmp/fe-deploy.tar.gz
-                        echo "Frontend deployed!"
-                    REMOTE
+                    # 清理
+                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "rm -rf /tmp/fe-deploy /tmp/fe-deploy.tar.gz"
+                    echo "Frontend deployed!"
                 '''
             }
         }
