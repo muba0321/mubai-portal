@@ -5,6 +5,7 @@ const ANSIBLE_BASE = "/api/v1/ansible";
 // ==================== 类型定义 ====================
 
 export interface InventoryHost {
+  name?: string;
   ansibleHost: string;
   internalIp: string;
   os: string;
@@ -180,7 +181,7 @@ const AnsibleAPI = {
   },
 
   /** 创建定时任务 */
-  createSchedule(data: { name: string; jobId?: number; cronExpression: string; enabled?: boolean }) {
+  createSchedule(data: { name: string; taskType?: string; command?: string; jobId?: number; cronExpression: string; enabled?: boolean }) {
     return request<any, any>({
       url: `${ANSIBLE_BASE}/schedules`,
       method: "post",
