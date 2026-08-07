@@ -1,5 +1,6 @@
 <template>
   <div class="ops-executor">
+    <!-- 执行表单 -->
     <el-card shadow="never">
       <template #header>
         <div class="card-header">
@@ -11,128 +12,143 @@
       </template>
 
       <el-form :model="form" label-width="100px">
-        <!-- 作业类型 -->
-        <el-form-item label="作业类型">
-          <el-radio-group v-model="form.type">
-            <el-radio-button label="ad_hoc">Ad-Hoc 命令</el-radio-button>
-            <el-radio-button label="playbook">Playbook</el-radio-button>
-            <el-radio-button label="script">Script</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-
         <!-- 目标主机 -->
         <el-form-item label="目标主机">
           <el-select v-model="form.hosts" multiple filterable placeholder="选择目标主机" style="width: 100%">
-            <el-option label="all (全部)" value="all" />
-            <el-option-group v-for="(hosts, group) in hostGroups" :key="group" :label="group">
-              <el-option v-for="h in hosts" :key="h.name" :label="`${h.name} (${h.ip})`" :value="h.name" />
+            <el-option label="全部主机" value="__all__" />
+            <el-option-group v-for="cluster in clusters" :key="cluster" :label="cluster">
+              <el-option v-for="h in clusterHosts[cluster]" :key="h.ansibleHost" :label="`${h.name} (${h.ansibleHost})`" :value="h.ansibleHost" />
             </el-option-group>
           </el-select>
         </el-form-item>
 
-        <!-- Ad-Hoc 参数 -->
-        <template v-if="form.type === 'ad_hoc'">
-          <el-form-item label="模块">
-            <el-input v-model="form.module" placeholder="例如: shell, command, ping, yum, service" />
-          </el-form-item>
-          <el-form-item label="模块参数">
-            <el-input v-model="form.args" placeholder="例如: uptime, df -h, ls -la" />
-          </el-form-item>
-          <el-form-item label="Extra Vars">
-            <el-input v-model="form.extra_vars" type="textarea" :rows="2" placeholder='JSON 格式，如 {"key": "value"}' />
-          </el-form-item>
-        </template>
+        <!-- 命令输入 -->
+        <el-form-item label="执行命令">
+          <el-input v-model="form.command" type="textarea" :rows="3" placeholder="输入要执行的命令，如 uptime、df -h、docker ps" clearable />
+        </el-form-item>
 
-        <!-- Playbook 参数 -->
-        <template v-if="form.type === 'playbook'">
-          <el-form-item label="Playbook 路径">
-            <el-input v-model="form.playbook" placeholder="/opt/ansible-playbooks/playbooks/xxx.yml" />
-          </el-form-item>
-          <el-form-item label="Extra Vars">
-            <el-input v-model="form.extra_vars" type="textarea" :rows="2" placeholder='JSON 格式' />
-          </el-form-item>
-        </template>
+        <!-- 快捷命令模板 -->
+        <el-form-item label="快捷命令">
+          <div class="template-section">
+            <el-select v-model="activeCategory" size="small" style="width: 120px" @change="onCategoryChange">
+              <el-option label="全部分类" value="" />
+              <el-option label="系统" value="system" />
+              <el-option label="服务" value="service" />
+              <el-option label="Docker" value="docker" />
+              <el-option label="磁盘" value="disk" />
+              <el-option label="网络" value="network" />
+              <el-option label="自定义" value="custom" />
+            </el-select>
+            <el-space wrap class="template-buttons">
+              <el-button
+                v-for="cmd in filteredCommands" :key="cmd.id"
+                size="small" :type="form.command === cmd.command ? 'primary' : 'default'"
+                @click="selectCommand(cmd)"
+              >{{ cmd.name }}</el-button>
+            </el-space>
+          </div>
+        </el-form-item>
 
-        <!-- Script 参数 -->
-        <template v-if="form.type === 'script'">
-          <el-form-item label="脚本路径">
-            <el-input v-model="form.script" placeholder="/opt/ansible-playbooks/scripts/xxx.sh" />
-          </el-form-item>
-        </template>
-
-        <!-- 快捷按钮 -->
-        <el-form-item v-if="form.type === 'ad_hoc'" label="快捷命令">
-          <el-space wrap>
-            <el-button size="small" @click="quickCmd('uptime')">uptime</el-button>
-            <el-button size="small" @click="quickCmd('df -h')">df -h</el-button>
-            <el-button size="small" @click="quickCmd('free -m')">free -m</el-button>
-            <el-button size="small" @click="quickCmd('top -bn1 | head -20')">top</el-button>
-            <el-button size="small" @click="quickCmd('docker ps --format table')">docker ps</el-button>
-            <el-button size="small" @click="quickCmd('systemctl status docker --no-pager')">systemctl docker</el-button>
-          </el-space>
+        <!-- 自定义变量 -->
+        <el-form-item label="自定义变量" v-if="hasVariables">
+          <div v-for="v in detectedVars" :key="v" class="var-input-row">
+            <el-tag size="small" type="info" style="width: 80px">{&thinsp;{{ v }}&thinsp;}</el-tag>
+            <el-input v-model="extraVars[v]" :placeholder="getVarPlaceholder(v)" size="small" style="width: 200px" />
+          </div>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 输出区域 -->
-    <el-card v-if="output" shadow="never" style="margin-top: 16px">
+    <!-- 执行结果 -->
+    <el-card v-if="results.length > 0" shadow="never" style="margin-top: 16px">
       <template #header>
         <div class="card-header">
           <span>执行结果</span>
-          <el-tag :type="statusTagType">{{ statusLabel }}</el-tag>
+          <div class="result-summary">
+            <el-tag type="success" size="small">成功 {{ successCount }}</el-tag>
+            <el-tag type="danger" size="small" v-if="failCount > 0">失败 {{ failCount }}</el-tag>
+            <el-tag type="info" size="small">耗时 {{ duration }}s</el-tag>
+          </div>
         </div>
       </template>
-      <pre class="output-box">{{ output }}</pre>
+
+      <el-collapse v-model="expandedResults">
+        <el-collapse-item v-for="r in results" :key="r.host" :title="r.host" :name="r.host">
+          <div class="result-content">
+            <el-tag :type="r.status === 'success' ? 'success' : 'danger'" size="small" style="margin-bottom: 8px">
+              {{ r.status === 'success' ? '成功' : r.status === 'timeout' ? '超时' : '失败' }}
+              <span v-if="r.exit_code !== undefined"> (exit: {{ r.exit_code }})</span>
+            </el-tag>
+            <pre class="output-box">{{ r.output || r.error || '(无输出)' }}</pre>
+          </div>
+        </el-collapse-item>
+      </el-collapse>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { VideoPlay } from "@element-plus/icons-vue";
-import AnsibleAPI, { type AnsibleHost } from "@/api/ansible";
-import { ElMessage } from "element-plus";
+import AnsibleAPI, { type InventoryHost, type CommandTemplate, type JobResult } from "@/api/ansible";
+import { ElMessage, ElMessageBox } from "element-plus";
 
 defineOptions({ name: "AnsibleExecutor" });
 
-const inventory = ref<Record<string, AnsibleHost>>({});
-const executing = ref(false);
-const output = ref("");
-const rc = ref(-1);
+// 主机清单
+const clusters = ref<string[]>([]);
+const clusterHosts = ref<Record<string, InventoryHost[]>>({});
+const allHosts = ref<Record<string, InventoryHost>>({});
 
+// 命令模板
+const commands = ref<CommandTemplate[]>([]);
+const activeCategory = ref("");
+const filteredCommands = computed(() => {
+  if (!activeCategory.value) return commands.value;
+  return commands.value.filter(c => c.category === activeCategory.value);
+});
+
+// 表单
 const form = reactive({
-  type: "ad_hoc" as string,
   hosts: [] as string[],
-  module: "shell",
-  args: "",
-  playbook: "",
-  script: "",
-  extra_vars: "",
+  command: "",
 });
 
-const hostGroups = computed(() => {
-  const groups: Record<string, AnsibleHost[]> = {};
-  for (const [name, host] of Object.entries(inventory.value)) {
-    const g = host.group;
-    if (!groups[g]) groups[g] = [];
-    groups[g].push({ ...host, name });
-  }
-  return groups;
+// 变量检测
+const hasVariables = computed(() => /\{(\w+)\}/.test(form.command));
+const detectedVars = computed(() => {
+  const vars = new Set<string>();
+  const matches = form.command.match(/\{(\w+)\}/g);
+  if (matches) matches.forEach(m => vars.add(m.slice(1, -1)));
+  // 移除内置变量
+  vars.delete("date");
+  vars.delete("datetime");
+  vars.delete("timestamp");
+  return Array.from(vars);
 });
+const extraVars = ref<Record<string, string>>({});
 
-const statusLabel = computed(() => {
-  if (rc.value === -1) return "等待执行";
-  if (rc.value === 0) return "成功";
-  return "失败";
-});
+function getVarPlaceholder(v: string): string {
+  const map: Record<string, string> = {
+    host: "目标 IP", days: "天数 (如 7)", container: "容器名", service: "服务名",
+  };
+  return map[v] || v;
+}
 
-const statusTagType = computed(() => {
-  if (rc.value === -1) return "info";
-  if (rc.value === 0) return "success";
-  return "danger";
-});
+// 执行结果
+const executing = ref(false);
+const results = ref<(JobResult & { host: string })[]>([]);
+const expandedResults = ref<string[]>([]);
+const successCount = computed(() => results.value.filter(r => r.status === "success").length);
+const failCount = computed(() => results.value.filter(r => r.status !== "success").length);
+const duration = ref(0);
 
-function quickCmd(cmd: string) {
-  form.args = cmd;
+function selectCommand(cmd: CommandTemplate) {
+  form.command = cmd.command;
+  extraVars.value = {};
+}
+
+function onCategoryChange() {
+  // category changed, commands will auto-filter
 }
 
 async function executeJob() {
@@ -140,68 +156,113 @@ async function executeJob() {
     ElMessage.warning("请选择目标主机");
     return;
   }
-  if (form.type === "ad_hoc" && !form.module) {
-    ElMessage.warning("请填写模块名称");
+  if (!form.command.trim()) {
+    ElMessage.warning("请输入执行命令");
     return;
   }
-  if (form.type === "playbook" && !form.playbook) {
-    ElMessage.warning("请填写 Playbook 路径");
-    return;
+
+  // 变量检查
+  if (hasVariables.value) {
+    const missing = detectedVars.value.filter(v => !extraVars.value[v]);
+    if (missing.length > 0) {
+      ElMessage.warning(`请填写变量: ${missing.map(v => `{${v}}`).join(", ")}`);
+      return;
+    }
   }
-  if (form.type === "script" && !form.script) {
-    ElMessage.warning("请填写脚本路径");
-    return;
+
+  // 目标主机处理
+  let targets = form.hosts;
+  if (targets.includes("__all__")) {
+    targets = Object.values(allHosts.value).map(h => h.ansibleHost);
   }
 
   executing.value = true;
-  output.value = "";
-  rc.value = -1;
+  results.value = [];
+  expandedResults.value = [];
 
   try {
-    const result = await AnsibleAPI.createJob({
-      name: `adhoc_${form.module || "script"}_${Date.now()}`,
-      type: form.type as any,
-      hosts: form.hosts,
-      module: form.module || undefined,
-      args: form.args || undefined,
-      playbook: form.playbook || undefined,
-      script: form.script || undefined,
-      extra_vars: form.extra_vars || undefined,
-    });
-    output.value = result.output || "";
-    if (result.error) {
-      output.value += "\n--- STDERR ---\n" + result.error;
+    // 替换变量
+    let command = form.command;
+    const vars: Record<string, string> = { ...extraVars.value };
+    for (const [key, val] of Object.entries(vars)) {
+      command = command.replace(new RegExp(`\\{${key}\\}`, "g"), val);
     }
-    rc.value = result.rc ?? -1;
-    if (result.status === "success") {
-      ElMessage.success("执行成功");
+
+    const resp = await AnsibleAPI.createJob({
+      name: form.command.slice(0, 50),
+      command,
+      hosts: targets,
+    });
+
+    duration.value = resp.duration || 0;
+
+    // 展示结果
+    if (resp.results) {
+      results.value = Object.entries(resp.results).map(([host, r]) => ({
+        ...r,
+        host,
+      }));
+      // 默认展开所有
+      expandedResults.value = Object.keys(resp.results);
+    }
+
+    if (resp.status === "success") {
+      ElMessage.success(`执行成功 (${resp.successCount}/${resp.totalHosts})`);
+    } else if (resp.status === "partial") {
+      ElMessage.warning(`部分成功 (${resp.successCount}/${resp.totalHosts})`);
     } else {
-      ElMessage.error("执行失败");
+      ElMessage.error(`执行失败`);
     }
   } catch (e: any) {
-    output.value = "执行出错: " + (e.message || e);
-    ElMessage.error("执行出错");
+    ElMessage.error(e.message || "执行出错");
   } finally {
     executing.value = false;
   }
 }
 
+// 加载数据
 async function fetchInventory() {
   try {
-    inventory.value = await AnsibleAPI.getInventory();
+    const data = await AnsibleAPI.getInventory();
+    clusters.value = data.clusters || [];
+    clusterHosts.value = {};
+    allHosts.value = data.hosts || {};
+
+    for (const [name, host] of Object.entries(data.hosts || {})) {
+      const cluster = host.cluster || "default";
+      if (!clusterHosts.value[cluster]) clusterHosts.value[cluster] = [];
+      clusterHosts.value[cluster].push({ ...host, name });
+    }
   } catch { /* ignored */ }
 }
 
-fetchInventory();
+async function fetchCommands() {
+  try {
+    commands.value = await AnsibleAPI.getCommands();
+  } catch { /* ignored */ }
+}
+
+onMounted(() => {
+  fetchInventory();
+  fetchCommands();
+});
 </script>
 
 <style scoped>
 .ops-executor { padding: 0; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
+.result-summary { display: flex; gap: 8px; }
+
+.template-section { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.template-buttons { flex: 1; }
+
+.var-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+.result-content { padding: 4px 0; }
 .output-box {
-  background: #0d1117; color: #c9d1d9; padding: 16px; border-radius: 6px;
+  background: #0d1117; color: #c9d1d9; padding: 12px; border-radius: 6px;
   font-family: "JetBrains Mono", "Fira Code", monospace; font-size: 13px;
-  line-height: 1.5; max-height: 500px; overflow: auto; white-space: pre-wrap;
-  word-break: break-all;
+  line-height: 1.5; max-height: 300px; overflow: auto; white-space: pre-wrap;
+  word-break: break-all; margin: 0;
 }
 </style>

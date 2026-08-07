@@ -20,24 +20,35 @@
     </div>
 
     <div class="bottom-row">
-      <div class="recent-visits">
+      <div class="todo-panel">
         <div class="panel-header">
           <div class="panel-title">
-            <el-icon><Clock /></el-icon>
-            最近访问
+            <el-icon><List /></el-icon>
+            待办事项
           </div>
-          <el-button text size="small" type="primary">查看全部 →</el-button>
+          <router-link to="/todo" class="panel-link">查看全部 →</router-link>
         </div>
-        <div class="recent-list">
-          <div v-for="item in recentList" :key="item.title" class="recent-item" @click="handleCardClick(item)">
-            <div class="recent-icon" :style="{ backgroundColor: item.bgColor }">
-              <el-icon :size="20" :color="item.color"><component :is="item.icon" /></el-icon>
+        <div v-if="todoLoading" class="todo-loading">
+          <el-skeleton :rows="3" animated />
+        </div>
+        <div v-else-if="!todoList.length" class="todo-empty">
+          <el-empty description="暂无待办事项" :image-size="60" />
+        </div>
+        <div v-else class="todo-list">
+          <div v-for="item in todoList" :key="item.id" class="todo-item" @click="goToTodo">
+            <div class="todo-priority" :class="item.priority" />
+            <div class="todo-info">
+              <div class="todo-title">{{ item.title }}</div>
+              <div class="todo-meta">
+                <el-tag :type="priorityTagType(item.priority)" size="small" effect="plain">
+                  {{ priorityLabels[item.priority] || item.priority }}
+                </el-tag>
+                <span v-if="item.dueDate" class="todo-due" :class="{ overdue: isOverdue(item.dueDate) }">
+                  {{ item.dueDate }}
+                </span>
+              </div>
             </div>
-            <div class="recent-info">
-              <div class="recent-title">{{ item.title }}</div>
-              <div class="recent-time">{{ item.time }}</div>
-            </div>
-            <el-icon class="recent-arrow"><ArrowRight /></el-icon>
+            <el-icon class="todo-arrow"><ArrowRight /></el-icon>
           </div>
         </div>
       </div>
@@ -162,10 +173,12 @@
 </template>
 
 <script setup lang="ts">
-import { Monitor, DataAnalysis, Document, Bell, Setting, TrendCharts, User, EditPen, Clock, Link, ArrowRight, Cpu, Connection, DataBoard, Warning, Histogram, Plus } from "@element-plus/icons-vue";
+import { Monitor, DataAnalysis, Document, Bell, Setting, TrendCharts, User, EditPen, Clock, Link, ArrowRight, Cpu, Connection, DataBoard, Warning, Histogram, Plus, List } from "@element-plus/icons-vue";
 import DashboardAPI from "@/api/dashboard";
+import { TodoAPI } from "@/api/todo";
 import { useUserStore } from "@/store";
 import { type CommonLink } from "@/api/dashboard";
+import { type TodoItem } from "@/types/api/todo";
 
 defineOptions({ name: "Dashboard" });
 
@@ -195,8 +208,20 @@ const featureCards = [
   { title: "操作记录", desc: "审计日志查看", icon: EditPen, bgColor: "#f0f7ff", color: "#1677ff" },
 ];
 
-// 最近访问（从 API 加载）
-const recentList = ref<any[]>([]);
+// 待办事项
+const todoList = ref<TodoItem[]>([]);
+const todoLoading = ref(false);
+
+const priorityLabels: Record<string, string> = { low: "低", medium: "中", high: "高", urgent: "紧急" };
+function priorityTagType(p: string): "success" | "warning" | "danger" | "info" {
+  const map: Record<string, "success" | "warning" | "danger" | "info"> = { low: "info", medium: "", high: "warning", urgent: "danger" };
+  return map[p] || "info";
+}
+function isOverdue(dueDate: string): boolean {
+  if (!dueDate) return false;
+  return new Date(dueDate) < new Date();
+}
+function goToTodo() { window.location.hash = "#/todo"; }
 
 // 系统状态（从 API 加载）
 const statusItems = ref<any[]>([]);
@@ -277,40 +302,24 @@ async function fetchCommonLinks() {
   }
 }
 
-async function fetchRecentVisits() {
+async function fetchTodos() {
+  todoLoading.value = true;
   try {
-    const data = await DashboardAPI.getRecentVisits();
-    recentList.value = (data || []).map((item: any, index: number) => {
-      const icons = [Monitor, DataAnalysis, Document, Bell];
-      const colors = ["#409eff", "#67c23a", "#e6a23c", "#f56c6c"];
-      const bgs = ["#e8f4fd", "#e8f8e8", "#fef3e2", "#fef0f0"];
-      const i = index % icons.length;
-      return {
-        title: item.pageTitle,
-        icon: icons[i],
-        bgColor: bgs[i],
-        color: colors[i],
-        time: formatTime(item.visitedAt),
-        path: item.pagePath,
-      };
-    });
+    // 获取未完成和进行中的待办，最多显示 5 条
+    const [pending, inProgress] = await Promise.all([
+      TodoAPI.getList({ status: "pending" }),
+      TodoAPI.getList({ status: "in_progress" }),
+    ]);
+    const all = [...(pending || []), ...(inProgress || [])];
+    // 按优先级排序：urgent > high > medium > low
+    const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+    all.sort((a, b) => (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9));
+    todoList.value = all.slice(0, 5);
   } catch {
-    // 使用默认值
+    // ignore
+  } finally {
+    todoLoading.value = false;
   }
-}
-
-function formatTime(isoStr: string): string {
-  if (!isoStr) return "";
-  const date = new Date(isoStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "刚刚访问";
-  if (diffMin < 60) return `${diffMin}分钟前访问`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}小时前访问`;
-  const diffDay = Math.floor(diffHr / 24);
-  return `${diffDay}天前访问`;
 }
 
 function handleCardClick(item: any) { console.log("navigate:", item.title); }
@@ -325,7 +334,7 @@ function handleLinkClick(item: any) {
 onMounted(() => {
   fetchSystemStatus();
   fetchCommonLinks();
-  fetchRecentVisits();
+  fetchTodos();
 });
 
 // 管理链接弹窗
@@ -451,17 +460,29 @@ function handleDeleteLink(row: any) {
   }
 }
 
-.recent-visits {
+.todo-panel {
   background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  .recent-list { padding: 8px 12px; }
-  .recent-item {
-    display: flex; align-items: center; gap: 12px; padding: 12px 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;
+  .panel-link { color: var(--el-color-primary); text-decoration: none; font-size: 13px; }
+  .panel-link:hover { text-decoration: underline; }
+  .todo-loading { padding: 16px; }
+  .todo-empty { padding: 8px 0; }
+  .todo-list { padding: 4px 12px 8px; }
+  .todo-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;
     &:hover { background: #f5f7fa; }
-    .recent-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .recent-info { flex: 1; min-width: 0; }
-    .recent-title { font-size: 14px; color: #303133; font-weight: 500; }
-    .recent-time { font-size: 12px; color: #909399; margin-top: 2px; }
-    .recent-arrow { color: #c0c4cc; flex-shrink: 0; }
+    .todo-priority {
+      width: 4px; height: 32px; border-radius: 2px; flex-shrink: 0;
+      &.urgent { background: #f56c6c; }
+      &.high { background: #e6a23c; }
+      &.medium { background: #409eff; }
+      &.low { background: #909399; }
+    }
+    .todo-info { flex: 1; min-width: 0; }
+    .todo-title { font-size: 14px; color: #303133; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .todo-meta { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+    .todo-due { font-size: 12px; color: #909399; }
+    .todo-due.overdue { color: #f56c6c; font-weight: 500; }
+    .todo-arrow { color: #c0c4cc; flex-shrink: 0; }
   }
 }
 

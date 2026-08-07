@@ -1,199 +1,170 @@
 <template>
   <div class="ops-history">
     <el-card shadow="never">
-      <!-- 筛选栏 -->
-      <el-form :inline="true" :model="queryParams" class="filter-bar">
-        <el-form-item label="作业状态">
-          <el-select v-model="queryParams.status" clearable placeholder="全部" style="width: 120px">
-            <el-option label="成功" value="success" />
-            <el-option label="失败" value="failed" />
-            <el-option label="超时" value="timeout" />
-            <el-option label="执行中" value="running" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="作业类型">
-          <el-select v-model="queryParams.type" clearable placeholder="全部" style="width: 130px">
-            <el-option label="Ad-Hoc" value="ad_hoc" />
-            <el-option label="Playbook" value="playbook" />
-            <el-option label="Script" value="script" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon> 搜索
-          </el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <template #header>
+        <div class="card-header">
+          <span>作业历史</span>
+          <div class="header-actions">
+            <el-select v-model="statusFilter" placeholder="状态筛选" clearable size="small" style="width: 120px" @change="fetchData">
+              <el-option label="成功" value="success" />
+              <el-option label="失败" value="failed" />
+              <el-option label="部分成功" value="partial" />
+              <el-option label="超时" value="timeout" />
+            </el-select>
+            <el-button size="small" @click="fetchData"><el-icon><Refresh /></el-icon> 刷新</el-button>
+          </div>
+        </div>
+      </template>
 
-      <!-- 表格 -->
-      <el-table :data="jobList" v-loading="loading" stripe border>
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="job_name" label="作业名称" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="job_type" label="类型" width="90">
+      <el-table :data="jobs" v-loading="loading" stripe>
+        <el-table-column label="ID" prop="id" width="60" />
+        <el-table-column label="作业名称" prop="jobName" min-width="200" show-overflow-tooltip />
+        <el-table-column label="类型" prop="jobType" width="90">
           <template #default="{ row }">
-            <el-tag size="small" :type="typeTag(row.job_type)">
-              {{ typeLabel(row.job_type) }}
+            <el-tag size="small" effect="plain">{{ row.jobType }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="目标主机" width="200" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ (row.targets || []).join(", ") }}
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" prop="status" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="statusType(row.status)" size="small">
+              {{ statusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="目标" width="150" show-overflow-tooltip>
+        <el-table-column label="耗时" prop="duration" width="80" align="center">
           <template #default="{ row }">
-            {{ row.targets.join(", ") }}
+            {{ row.duration }}s
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag size="small" :type="statusTag(row.status)">
-              {{ statusLabel(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_by" label="执行者" width="90" />
-        <el-table-column prop="started_at" label="开始时间" width="170" />
-        <el-table-column prop="created_at" label="创建时间" width="170" />
-        <el-table-column label="操作" width="80" fixed="right">
+        <el-table-column label="操作人" prop="createdBy" width="90" />
+        <el-table-column label="执行时间" prop="createdAt" width="170" />
+        <el-table-column label="操作" width="80" align="center" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="viewDetail(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
-      <div class="pagination-bar">
+      <div class="pagination-wrap" v-if="total > 0">
         <el-pagination
-          v-model:current-page="queryParams.page"
-          v-model:page-size="queryParams.per_page"
-          :page-sizes="[10, 20, 50, 100]"
+          v-model:current-page="pageNum"
+          :page-size="pageSize"
           :total="total"
-          layout="total, sizes, prev, pager, next"
-          @size-change="fetchJobs"
-          @current-change="fetchJobs"
+          layout="prev, pager, next"
+          small
+          @current-change="fetchData"
         />
       </div>
     </el-card>
 
     <!-- 详情弹窗 -->
-    <el-dialog v-model="detailVisible" title="作业详情" width="800px" destroy-on-close>
-      <template v-if="currentJob">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="ID">{{ currentJob.id }}</el-descriptions-item>
-          <el-descriptions-item label="作业名称">{{ currentJob.job_name }}</el-descriptions-item>
-          <el-descriptions-item label="类型">{{ typeLabel(currentJob.job_type) }}</el-descriptions-item>
+    <el-dialog v-model="detailVisible" title="作业详情" width="900px" top="5vh">
+      <div v-if="detail" class="job-detail">
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="作业名称">{{ detail.jobName }}</el-descriptions-item>
+          <el-descriptions-item label="类型">{{ detail.jobType }}</el-descriptions-item>
+          <el-descriptions-item label="模块">{{ detail.module }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="statusTag(currentJob.status)">{{ statusLabel(currentJob.status) }}</el-tag>
+            <el-tag :type="statusType(detail.status)" size="small">{{ statusText(detail.status) }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="目标">{{ currentJob.targets.join(", ") }}</el-descriptions-item>
-          <el-descriptions-item label="执行者">{{ currentJob.created_by }}</el-descriptions-item>
-          <el-descriptions-item label="模块" v-if="currentJob.module">{{ currentJob.module }}</el-descriptions-item>
-          <el-descriptions-item label="参数" v-if="currentJob.module_args">{{ currentJob.module_args }}</el-descriptions-item>
-          <el-descriptions-item label="Playbook" v-if="currentJob.playbook_path" :span="2">{{ currentJob.playbook_path }}</el-descriptions-item>
-          <el-descriptions-item label="脚本" v-if="currentJob.script_path" :span="2">{{ currentJob.script_path }}</el-descriptions-item>
-          <el-descriptions-item label="开始时间">{{ currentJob.started_at }}</el-descriptions-item>
-          <el-descriptions-item label="结束时间">{{ currentJob.finished_at }}</el-descriptions-item>
+          <el-descriptions-item label="操作人">{{ detail.createdBy }}</el-descriptions-item>
+          <el-descriptions-item label="耗时">{{ detail.duration }}s</el-descriptions-item>
+          <el-descriptions-item label="开始时间" :span="2">{{ detail.startedAt }}</el-descriptions-item>
+          <el-descriptions-item label="目标主机" :span="2">{{ (detail.targets || []).join(", ") }}</el-descriptions-item>
+          <el-descriptions-item label="命令内容" :span="2">
+            <pre class="inline-code">{{ detail.moduleArgs }}</pre>
+          </el-descriptions-item>
         </el-descriptions>
 
-        <!-- 输出 -->
-        <div v-if="currentJob.result" style="margin-top: 16px">
-          <h4>执行输出</h4>
-          <pre class="output-box">{{ formatResult(currentJob.result) }}</pre>
+        <div v-if="detail.results" class="results-section" style="margin-top: 16px">
+          <h4>执行结果</h4>
+          <el-collapse>
+            <el-collapse-item v-for="(result, host) in detail.results" :key="host" :title="host" :name="host">
+              <el-tag :type="result.status === 'success' ? 'success' : 'danger'" size="small" style="margin-bottom: 8px">
+                {{ result.status === 'success' ? '成功' : '失败' }} (exit: {{ result.exit_code }})
+              </el-tag>
+              <pre class="output-box">{{ result.output || result.error || '(无输出)' }}</pre>
+            </el-collapse-item>
+          </el-collapse>
         </div>
-        <div v-if="currentJob.error_msg" style="margin-top: 8px">
-          <el-alert type="error" :title="currentJob.error_msg" :closable="false" show-icon />
-        </div>
-      </template>
+      </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Search } from "@element-plus/icons-vue";
-import AnsibleAPI, { type AnsibleJob } from "@/api/ansible";
+import { Refresh } from "@element-plus/icons-vue";
+import AnsibleAPI, { type AnsibleJob, type AnsibleJobDetail } from "@/api/ansible";
 import { ElMessage } from "element-plus";
 
 defineOptions({ name: "AnsibleHistory" });
 
 const loading = ref(false);
-const jobList = ref<AnsibleJob[]>([]);
+const jobs = ref<AnsibleJob[]>([]);
 const total = ref(0);
+const pageNum = ref(1);
+const pageSize = ref(20);
+const statusFilter = ref("");
+
 const detailVisible = ref(false);
-const currentJob = ref<AnsibleJob | null>(null);
+const detail = ref<AnsibleJobDetail | null>(null);
 
-const queryParams = reactive({
-  page: 1,
-  per_page: 20,
-  status: "" as string,
-  type: "" as string,
-});
-
-function typeLabel(t: string) {
-  const map: Record<string, string> = { ad_hoc: "Ad-Hoc", playbook: "Playbook", script: "Script" };
-  return map[t] || t;
+function statusType(status: string): "success" | "danger" | "warning" | "info" {
+  const map: Record<string, "success" | "danger" | "warning" | "info"> = {
+    success: "success", failed: "danger", partial: "warning", timeout: "warning", running: "info", pending: "info",
+  };
+  return map[status] || "info";
 }
 
-function typeTag(t: string) {
-  const map: Record<string, string> = { ad_hoc: "", playbook: "success", script: "warning" };
-  return map[t] || "info";
+function statusText(status: string): string {
+  const map: Record<string, string> = {
+    success: "成功", failed: "失败", partial: "部分成功", timeout: "超时", running: "执行中", pending: "等待",
+  };
+  return map[status] || status;
 }
 
-function statusLabel(s: string) {
-  const map: Record<string, string> = { success: "成功", failed: "失败", timeout: "超时", running: "执行中" };
-  return map[s] || s;
-}
-
-function statusTag(s: string) {
-  const map: Record<string, string> = { success: "success", failed: "danger", timeout: "warning", running: "info" };
-  return map[s] || "info";
-}
-
-function formatResult(result: any): string {
-  if (typeof result === "string") return result;
-  if (result?.stdout) return result.stdout + (result.stderr ? "\n--- STDERR ---\n" + result.stderr : "");
-  return JSON.stringify(result, null, 2);
-}
-
-async function fetchJobs() {
+async function fetchData() {
   loading.value = true;
   try {
-    const res = await AnsibleAPI.listJobs({
-      page: queryParams.page,
-      per_page: queryParams.per_page,
+    const data = await AnsibleAPI.listJobs({
+      pageNum: pageNum.value,
+      pageSize: pageSize.value,
+      status: statusFilter.value || undefined,
     });
-    jobList.value = res.items;
-    total.value = res.total;
-  } catch {
-    ElMessage.error("获取作业列表失败");
-  } finally {
+    jobs.value = data?.list || [];
+    total.value = data?.total || 0;
+  } catch { /* ignored */ } finally {
     loading.value = false;
   }
 }
 
-function handleSearch() {
-  queryParams.page = 1;
-  fetchJobs();
+async function viewDetail(job: AnsibleJob) {
+  try {
+    detail.value = await AnsibleAPI.getJob(job.id);
+    detailVisible.value = true;
+  } catch {
+    ElMessage.error("获取详情失败");
+  }
 }
 
-function handleReset() {
-  queryParams.status = "";
-  queryParams.type = "";
-  queryParams.page = 1;
-  fetchJobs();
-}
-
-function viewDetail(job: AnsibleJob) {
-  currentJob.value = job;
-  detailVisible.value = true;
-}
-
-fetchJobs();
+onMounted(() => { fetchData(); });
 </script>
 
 <style scoped>
-.filter-bar { margin-bottom: 16px; }
-.pagination-bar { margin-top: 16px; display: flex; justify-content: flex-end; }
+.ops-history { padding: 0; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.pagination-wrap { display: flex; justify-content: flex-end; margin-top: 12px; }
+.inline-code { margin: 0; padding: 4px 8px; background: #f5f7fa; border-radius: 4px; font-size: 13px; font-family: monospace; }
 .output-box {
   background: #0d1117; color: #c9d1d9; padding: 12px; border-radius: 6px;
-  font-family: "JetBrains Mono", "Fira Code", monospace; font-size: 12px;
-  max-height: 400px; overflow: auto; white-space: pre-wrap; word-break: break-all;
+  font-family: "JetBrains Mono", "Fira Code", monospace; font-size: 13px;
+  line-height: 1.5; max-height: 300px; overflow: auto; white-space: pre-wrap;
+  word-break: break-all; margin: 0;
 }
 </style>

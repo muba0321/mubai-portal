@@ -227,6 +227,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/setting/index.vue"),
         meta: { title: "配置管理", icon: "el-icon-Tools" },
       },
+      {
+        path: "config-source",
+        name: "ConfigSource",
+        component: () => import("@/views/system/config-source.vue"),
+        meta: { title: "配置源切换", icon: "el-icon-Connection" },
+      },
     ],
   },
 

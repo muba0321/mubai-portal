@@ -130,6 +130,90 @@
       </div>
     </el-card>
 
+    <!-- AI 生成记录 -->
+    <el-card shadow="never" class="history-card">
+      <template #header>
+        <div class="card-header">
+          <el-icon><List /></el-icon>
+          <span>生成记录</span>
+          <el-tag type="info" size="small" effect="plain" class="count-badge">
+            共 {{ historyTotal }} 条
+          </el-tag>
+          <div class="history-actions">
+            <el-input v-model="historyKeyword" placeholder="搜索描述/仪表盘" clearable size="small" style="width: 200px" @keyup.enter="fetchHistory" @clear="fetchHistory">
+              <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+            <el-button size="small" @click="fetchHistory"><el-icon><Refresh /></el-icon>刷新</el-button>
+          </div>
+        </div>
+      </template>
+
+      <el-table :data="historyList" v-loading="historyLoading" size="small" stripe>
+        <el-table-column label="时间" prop="createdAt" width="160" />
+        <el-table-column label="仪表盘" prop="dashboardTitle" min-width="150" show-overflow-tooltip />
+        <el-table-column label="操作" prop="operation" width="80" align="center">
+          <template #default="{ row }">
+            <el-tag :type="operationTagType(row.operation)" size="small" effect="plain">
+              {{ operationLabels[row.operation] || row.operation }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="描述" prop="description" min-width="200" show-overflow-tooltip />
+        <el-table-column label="状态" width="80" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'success' ? 'success' : 'danger'" size="small">
+              {{ row.status === 'success' ? '成功' : '失败' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作人" prop="username" width="90" />
+        <el-table-column label="操作" width="120" align="center" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" @click="handleViewHistory(row)">详情</el-button>
+            <el-button type="danger" link size="small" @click="handleDeleteHistory(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="history-pagination" v-if="historyTotal > historyPageSize">
+        <el-pagination
+          v-model:current-page="historyPage"
+          :page-size="historyPageSize"
+          :total="historyTotal"
+          layout="prev, pager, next"
+          small
+          @current-change="fetchHistory"
+        />
+      </div>
+    </el-card>
+
+    <!-- 生成记录详情弹窗 -->
+    <el-dialog v-model="historyDetailVisible" title="生成记录详情" width="900px" top="5vh">
+      <div v-if="historyDetail" class="history-detail">
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="仪表盘">{{ historyDetail.dashboardTitle }}</el-descriptions-item>
+          <el-descriptions-item label="操作类型">
+            <el-tag :type="operationTagType(historyDetail.operation)" size="small">{{ operationLabels[historyDetail.operation] || historyDetail.operation }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="historyDetail.status === 'success' ? 'success' : 'danger'" size="small">{{ historyDetail.status === 'success' ? '成功' : '失败' }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="操作人">{{ historyDetail.username }}</el-descriptions-item>
+          <el-descriptions-item label="时间" :span="2">{{ historyDetail.createdAt }}</el-descriptions-item>
+          <el-descriptions-item label="描述" :span="2">{{ historyDetail.description }}</el-descriptions-item>
+          <el-descriptions-item label="AI 说明" :span="2">{{ historyDetail.explanation || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        <div v-if="historyDetail.panelJson" class="model-json" style="margin-top: 16px">
+          <div class="json-header">
+            <span>生成的面板 JSON</span>
+            <el-button type="primary" link size="small" @click="copyHistoryJson">复制</el-button>
+          </div>
+          <pre class="json-body">{{ JSON.stringify(historyDetail.panelJson, null, 2) }}</pre>
+        </div>
+        <el-alert v-if="historyDetail.errorMsg" :title="historyDetail.errorMsg" type="error" :closable="false" show-icon style="margin-top: 12px" />
+      </div>
+    </el-dialog>
+
     <!-- 数据源信息 -->
     <el-card shadow="never" class="info-card">
       <template #header>
@@ -360,8 +444,8 @@
 </template>
 
 <script setup lang="ts">
-import { DataBoard, Plus, FolderOpened, Monitor, Cpu, Link, StarFilled, MagicStick, Check, Loading, CircleCheckFilled, CircleCloseFilled, WarningFilled, View, Refresh, DocumentCopy, Warning } from "@element-plus/icons-vue";
-import GrafanaAPI, { type DashboardItem, type DashboardDetail } from "@/api/grafana";
+import { DataBoard, Plus, FolderOpened, Monitor, Cpu, Link, StarFilled, MagicStick, Check, Loading, CircleCheckFilled, CircleCloseFilled, WarningFilled, View, Refresh, DocumentCopy, Warning, List, Search } from "@element-plus/icons-vue";
+import GrafanaAPI, { type DashboardItem, type DashboardDetail, type AiHistoryItem } from "@/api/grafana";
 
 defineOptions({ name: "GrafanaManage" });
 
@@ -388,6 +472,71 @@ const editForm = reactive({
   tagsStr: "",
   modelJson: "",
 });
+
+// ==================== AI 生成记录 ====================
+
+const operationLabels: Record<string, string> = { add: "新增", modify: "修改", delete: "删除" };
+
+function operationTagType(op: string): "success" | "warning" | "danger" | "info" | undefined {
+  const map: Record<string, "success" | "warning" | "danger" | "info"> = { add: "success", modify: "warning", delete: "danger" };
+  return map[op] || "info";
+}
+
+const historyList = ref<AiHistoryItem[]>([]);
+const historyTotal = ref(0);
+const historyPage = ref(1);
+const historyPageSize = ref(10);
+const historyKeyword = ref("");
+const historyLoading = ref(false);
+const historyDetailVisible = ref(false);
+const historyDetail = ref<AiHistoryItem | null>(null);
+
+async function fetchHistory() {
+  historyLoading.value = true;
+  try {
+    const data = await GrafanaAPI.getAiHistory({
+      page: historyPage.value,
+      pageSize: historyPageSize.value,
+      keyword: historyKeyword.value || undefined,
+    });
+    historyList.value = data?.list || [];
+    historyTotal.value = data?.total || 0;
+  } catch {
+    // ignore
+  } finally {
+    historyLoading.value = false;
+  }
+}
+
+function handleViewHistory(row: AiHistoryItem) {
+  GrafanaAPI.getAiHistoryDetail(row.id).then((data) => {
+    historyDetail.value = data;
+    historyDetailVisible.value = true;
+  });
+}
+
+function handleDeleteHistory(row: AiHistoryItem) {
+  ElMessageBox.confirm(`确认删除该生成记录？`, "警告", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  }).then(async () => {
+    try {
+      await GrafanaAPI.deleteAiHistory(row.id);
+      ElMessage.success("删除成功");
+      fetchHistory();
+    } catch {
+      // ignore
+    }
+  }).catch(() => {});
+}
+
+function copyHistoryJson() {
+  if (historyDetail.value?.panelJson) {
+    navigator.clipboard.writeText(JSON.stringify(historyDetail.value.panelJson, null, 2));
+    ElMessage.success("已复制到剪贴板");
+  }
+}
 
 async function fetchData() {
   loading.value = true;
@@ -540,8 +689,6 @@ const aiTab = ref("json");
 const aiTaskResult = ref<any>(null);
 const aiTaskResultJson = computed(() => aiTaskResult.value ? JSON.stringify(aiTaskResult.value.panelJson, null, 2) : "");
 
-const operationLabels: Record<string, string> = { add: "新增", modify: "修改", delete: "删除" };
-
 const quickTemplates = [
   { label: "CPU 使用率", desc: "添加一个CPU使用率折线图，显示最近6小时趋势，带70%/90%告警阈值" },
   { label: "内存使用", desc: "添加一个内存使用率仪表盘，显示当前内存使用百分比" },
@@ -689,9 +836,14 @@ async function handleAiGenerate() {
 
     aiTaskStatus.value = "done";
     aiTaskResult.value = resp;
+
+    // 刷新生成记录
+    fetchHistory();
   } catch {
     aiTaskStatus.value = "error";
     ElMessage.error("AI 生成失败，请重试");
+    // 失败也会记录，刷新列表
+    fetchHistory();
   } finally {
     aiTaskRunning.value = false;
     aiLoading.value = false;
@@ -766,6 +918,7 @@ async function handleAiSave() {
 
 onMounted(() => {
   fetchData();
+  fetchHistory();
 });
 </script>
 
@@ -784,6 +937,13 @@ onMounted(() => {
 .info-card { margin-bottom: 16px; }
 .dashboards-card { margin-bottom: 16px; }
 .folders-card { margin-bottom: 16px; }
+.history-card {
+  margin-bottom: 16px;
+  .card-header {
+    .history-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  }
+  .history-pagination { display: flex; justify-content: flex-end; margin-top: 12px; }
+}
 .card-header { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .count-badge { margin-left: auto; }
 .mr-1 { margin-right: 4px; }

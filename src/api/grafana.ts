@@ -135,6 +135,55 @@ const GrafanaAPI = {
       timeout: 180000,  // AI 调用可能耗时 60-90 秒
     });
   },
+
+  // ==================== AI 生成记录 ====================
+
+  /** 获取 AI 生成记录列表 */
+  getAiHistory(params?: {
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+    dashboardUid?: string;
+  }) {
+    return request<any, { list: AiHistoryItem[]; total: number }>({
+      url: `${GRAFANA_BASE_URL}/ai-history`,
+      method: "get",
+      params,
+    });
+  },
+
+  /** 获取 AI 生成记录详情 */
+  getAiHistoryDetail(id: number) {
+    return request<any, AiHistoryItem>({
+      url: `${GRAFANA_BASE_URL}/ai-history/${id}`,
+      method: "get",
+    });
+  },
+
+  /** 删除 AI 生成记录 */
+  deleteAiHistory(id: number) {
+    return request({
+      url: `${GRAFANA_BASE_URL}/ai-history/${id}`,
+      method: "delete",
+    });
+  },
 };
 
 export default GrafanaAPI;
+
+// ==================== AI 生成记录类型 ====================
+
+export interface AiHistoryItem {
+  id: number;
+  dashboardUid: string;
+  dashboardTitle: string;
+  operation: string;
+  description: string;
+  panelJson: any;
+  explanation: string;
+  status: string;
+  errorMsg: string | null;
+  userId: number;
+  username: string;
+  createdAt: string;
+}

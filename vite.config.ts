@@ -7,6 +7,7 @@ import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import UnoCSS from "unocss/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
+import viteCompression from "vite-plugin-compression";
 
 const pkg = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf-8"));
 const __APP_INFO__ = {
@@ -35,6 +36,10 @@ export default defineConfig(({ mode }) => {
         resolvers: [ElementPlusResolver()],
       }),
       UnoCSS(),
+      // gzip 压缩（仅生产环境）
+      ...(mode === "production" ? [
+        viteCompression({ algorithm: "gzip", ext: ".gz" }),
+      ] : []),
     ],
     resolve: {
       alias: {
@@ -75,7 +80,21 @@ export default defineConfig(({ mode }) => {
       ],
     },
     build: {
-      chunkSizeWarningLimit: 2000,
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Vue 核心
+            'vendor': ['vue', 'vue-router', 'pinia', 'axios', '@vueuse/core'],
+            // UI 组件库（大文件单独分包）
+            'element-plus': ['element-plus', '@element-plus/icons-vue'],
+            'echarts': ['echarts'],
+            'vxe-table': ['vxe-table', 'vxe-pc-ui', 'xe-utils'],
+            // 工具库
+            'utils': ['lodash-es', 'qs', 'nprogress', 'animate.css'],
+          }
+        }
+      }
     },
     define: {
       __APP_INFO__: JSON.stringify(__APP_INFO__),
