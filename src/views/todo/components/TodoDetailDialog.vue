@@ -86,7 +86,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { TodoAPI, TodoExtendAPI, type TodoItem } from "@/api/todo";
+import { TodoAPI, type TodoItem } from "@/api/todo";
 import { ElMessage } from "element-plus";
 import TagSelector from "./TagSelector.vue";
 import AttachmentList from "./AttachmentList.vue";

@@ -184,6 +184,15 @@ export const TodoExtendAPI = {
     });
   },
 
+  // 更新任务状态（用于看板拖拽）
+  updateTodo(todoId: number, data: Partial<TodoItem>) {
+    return request<any, TodoItem>({
+      url: `${TODO_BASE}/todos/${todoId}`,
+      method: "put",
+      data,
+    });
+  },
+
   // 更新看板排序
   updateViewOrder(todoId: number, viewOrder: number) {
     return request({

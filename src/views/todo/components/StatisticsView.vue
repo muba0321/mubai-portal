@@ -101,7 +101,7 @@ import * as echarts from "echarts";
 import { TodoExtendAPI, ProjectAPI, type Project } from "@/api/todo";
 
 const projects = ref<Project[]>([]);
-const selectedProject = ref<number | undefined>();
+const selectedProject = ref<number | null>(null);
 const stats = ref<any>(null);
 const statusChartRef = ref<HTMLElement>();
 const priorityChartRef = ref<HTMLElement>();
