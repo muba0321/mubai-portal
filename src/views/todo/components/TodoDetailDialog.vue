@@ -64,17 +64,17 @@
 
       <!-- 标签 -->
       <div class="detail-section">
-        <TagSelector :todo-id="todoId" @change="onTagsChange" />
+        <TagSelector v-if="todoLoaded" :todo-id="todoId" @change="onTagsChange" />
       </div>
 
       <!-- 附件 -->
       <div class="detail-section">
-        <AttachmentList :todo-id="todoId!" />
+        <AttachmentList v-if="todoLoaded" :todo-id="todoId!" />
       </div>
 
       <!-- 评论 -->
       <div class="detail-section">
-        <CommentList :todo-id="todoId!" />
+        <CommentList v-if="todoLoaded" :todo-id="todoId!" />
       </div>
     </div>
 
@@ -103,6 +103,7 @@ const emit = defineEmits<{
 }>();
 
 const todo = ref<TodoItem | null>(null);
+const todoLoaded = ref(false);
 const editForm = ref({
   title: "",
   description: "",
@@ -114,6 +115,8 @@ const editForm = ref({
 
 async function loadTodo() {
   if (!props.todoId) return;
+
+  todoLoaded.value = false; // 重置加载状态
 
   try {
     const todos = await TodoAPI.getList();
@@ -129,8 +132,11 @@ async function loadTodo() {
         dueDate: todo.value.dueDate || null,
       };
     }
+
+    todoLoaded.value = true; // 标记加载完成
   } catch (error) {
     console.error("加载任务失败:", error);
+    todoLoaded.value = true; // 即使失败也标记完成，避免无限等待
   }
 }
 
