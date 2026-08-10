@@ -192,11 +192,11 @@ function onDragStart(todo: TodoItem) {
   draggedTodo.value = todo;
 }
 
-function onDragOver(e: DragEvent) {
-  e.dataTransfer!.dropEffect = "move";
+function onDragOver(_e: DragEvent) {
+  _e.dataTransfer!.dropEffect = "move";
 }
 
-async function onDrop(e: DragEvent, newStatus: string) {
+async function onDrop(e: DragEvent, newStatus: "pending" | "in_progress" | "completed" | "cancelled") {
   if (!draggedTodo.value) return;
 
   const todo = draggedTodo.value;
