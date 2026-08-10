@@ -4,7 +4,7 @@
     @update:model-value="emit('update:modelValue', $event)"
     title="任务详情"
     width="700px"
-    @close="emit('close')"
+    @close="emit('update:modelValue', false)"
   >
     <div v-if="todo" class="todo-detail">
       <!-- 标题编辑 -->
@@ -69,12 +69,12 @@
 
       <!-- 附件 -->
       <div class="detail-section">
-        <AttachmentList :todo-id="todoId" />
+        <AttachmentList :todo-id="todoId!" />
       </div>
 
       <!-- 评论 -->
       <div class="detail-section">
-        <CommentList :todo-id="todoId" />
+        <CommentList :todo-id="todoId!" />
       </div>
     </div>
 

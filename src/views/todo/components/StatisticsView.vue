@@ -131,7 +131,7 @@ async function loadProjects() {
 
 async function loadStatistics() {
   try {
-    const data = await TodoExtendAPI.getStatistics(selectedProject.value);
+    const data = await TodoExtendAPI.getStatistics(selectedProject.value || undefined);
     stats.value = data;
     // 延迟渲染图表，确保 DOM 已更新
     setTimeout(() => {
