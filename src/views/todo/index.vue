@@ -230,16 +230,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, defineAsyncComponent } from "vue";
 import {
   List, Grid, Calendar, DataAnalysis, Plus, EditPen, Delete,
 } from "@element-plus/icons-vue";
 import { ProjectAPI, TodoAPI, type Project, type TodoItem } from "@/api/todo";
 import { ElMessage, ElMessageBox } from "element-plus";
-import KanbanView from "./components/KanbanView.vue";
-import CalendarView from "./components/CalendarView.vue";
-import StatisticsView from "./components/StatisticsView.vue";
-import TodoDetailDialog from "./components/TodoDetailDialog.vue";
+
+// 懒加载重组件，提升首屏加载速度
+const KanbanView = defineAsyncComponent(() => import("./components/KanbanView.vue"));
+const CalendarView = defineAsyncComponent(() => import("./components/CalendarView.vue"));
+const StatisticsView = defineAsyncComponent(() => import("./components/StatisticsView.vue"));
+const TodoDetailDialog = defineAsyncComponent(() => import("./components/TodoDetailDialog.vue"));
 
 // 视图切换
 const currentView = ref("list");

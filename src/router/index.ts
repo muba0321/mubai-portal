@@ -233,6 +233,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/system/config-source.vue"),
         meta: { title: "配置源切换", icon: "el-icon-Connection" },
       },
+      {
+        path: "credential",
+        name: "CredentialManage",
+        component: () => import("@/views/system/credential/index.vue"),
+        meta: { title: "密码管理", icon: "el-icon-Lock" },
+      },
     ],
   },
 
