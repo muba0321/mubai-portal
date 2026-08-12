@@ -1,5 +1,19 @@
 <template>
   <div class="changelog-container">
+    <!-- 功能切换 Tab -->
+    <el-card shadow="never" style="margin-bottom: 16px">
+      <el-radio-group v-model="viewMode" size="large">
+        <el-radio-button value="versions">
+          <el-icon><List /></el-icon> 版本记录
+        </el-radio-button>
+        <el-radio-button value="repo">
+          <el-icon><FolderOpened /></el-icon> 仓库信息
+        </el-radio-button>
+      </el-radio-group>
+    </el-card>
+
+    <!-- 版本记录视图 -->
+    <div v-if="viewMode === 'versions'">
     <el-card shadow="never" class="changelog-card">
       <template #header>
         <div class="changelog-header">
@@ -58,12 +72,19 @@
         </el-timeline-item>
       </el-timeline>
     </el-card>
+    </div>
+
+    <!-- 仓库信息视图 -->
+    <RepoManagement v-else />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ArrowDown, CircleCheck, Plus, Edit, Delete } from "@element-plus/icons-vue";
+import { ArrowDown, CircleCheck, Plus, Edit, Delete, List, FolderOpened } from "@element-plus/icons-vue";
+import RepoManagement from "./components/RepoManagement.vue";
+
+const viewMode = ref<"versions" | "repo">("versions");
 
 import pkg from "@/../package.json";
 
