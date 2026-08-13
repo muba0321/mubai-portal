@@ -85,6 +85,18 @@ export interface BlameLine {
   content: string;
 }
 
+export interface NetworkStatus {
+  overall: string;
+  overallMessage: string;
+  checks: {
+    name: string;
+    status: string;
+    http_code: number;
+    latency_ms: number;
+    message: string;
+  }[];
+}
+
 export const GitAPI = {
   // 仓库概览
   getRepo(name: string) {
@@ -159,6 +171,14 @@ export const GitAPI = {
       url: `${GIT_BASE}/blame/${name}`,
       method: "get",
       params: { path },
+    });
+  },
+
+  // 网络状态检测
+  getNetworkStatus() {
+    return request<any, NetworkStatus>({
+      url: `${GIT_BASE}/network-status`,
+      method: "get",
     });
   },
 };
