@@ -40,6 +40,12 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <!-- Diff 代码对比 -->
+        <div class="diff-section">
+          <h4>代码对比</h4>
+          <DiffView :repo="repo" :hash="detail.hash" />
+        </div>
       </div>
     </div>
   </div>
@@ -49,6 +55,7 @@
 import { ref, onMounted } from "vue";
 import { GitAPI, type CommitDetail } from "@/api/git";
 import { ElMessage } from "element-plus";
+import DiffView from "./DiffView.vue";
 
 const props = defineProps<{
   repo: string;
