@@ -1,21 +1,14 @@
 <template>
   <div class="commit-list">
-    <!-- 筛选栏 -->
+    <!-- 搜索栏 -->
     <div class="filter-bar">
       <el-input
         v-model="keyword"
         placeholder="搜索提交信息..."
         clearable
-        style="width: 200px"
+        style="width: 300px"
         @input="debounceLoad"
       />
-      <el-select v-model="commitType" placeholder="按类型筛选" clearable style="width: 120px" @change="loadCommits">
-        <el-option label="feat" value="feat" />
-        <el-option label="fix" value="fix" />
-        <el-option label="perf" value="perf" />
-        <el-option label="refactor" value="refactor" />
-        <el-option label="chore" value="chore" />
-      </el-select>
     </div>
 
     <!-- 提交时间线 -->
@@ -68,7 +61,6 @@ const total = ref(0);
 const page = ref(1);
 const pageSize = 20;
 const keyword = ref("");
-const commitType = ref("");
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 function typeColor(type: string) {
@@ -92,7 +84,6 @@ async function loadCommits() {
     const data = await GitAPI.getCommits(props.repo, {
       page: page.value,
       pageSize,
-      type: commitType.value || undefined,
       keyword: keyword.value || undefined,
     });
     commits.value = data.list;
