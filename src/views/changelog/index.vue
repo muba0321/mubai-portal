@@ -121,11 +121,24 @@ interface Version {
 
 const versions = ref<Version[]>([
   {
+    version: "1.0.8",
+    name: "代码库管理功能",
+    date: "2026-08-14",
+    summary: "新增代码库管理功能（仓库概览、提交历史、分支/标签列表、文件浏览、Diff 视图、Blame 视图），优化提交历史界面，添加本地缓存作为 GitHub API 后备数据源。",
+    expanded: true,
+    changes: {
+      feat: ["新增仓库概览（前端/后端仓库信息展示）", "新增提交历史（支持按时间查看、搜索功能）", "新增分支列表（显示仓库分支信息）", "新增标签列表（显示仓库标签信息）", "新增文件浏览（浏览仓库文件目录结构）", "新增提交详情（Diff 代码对比视图）", "新增 Blame 视图（显示文件每行最后修改信息）"],
+      fix: ["修复 GitHub API author 字段解析错误（处理 None 情况）", "修复提交历史 API 500 错误", "修复 Docker 镜像缓存导致代码未更新问题"],
+      optimize: ["提交历史界面优化（移除类型筛选，简化界面）", "添加本地缓存作为 GitHub API 失败时的后备数据源（50 条提交记录）"],
+      chore: ["前后端版本统一封版至 v1.0.8", "更新版本记录页面", "新增开发环境配置文档"],
+    },
+  },
+  {
     version: "1.0.7",
     name: "指标与告警管理 + 运维中心 + 数据库 AI",
     date: "2026-05-29",
     summary: "新增指标与告警管理系统、运维中心（Ansible）、数据库 AI SQL 生成、Grafana 面板 AI 辅助生成，完善系统管理模块。",
-    expanded: true,
+    expanded: false,
     changes: {
       feat: ["新增指标与告警管理页面（指标库/告警规则/通知渠道/模板市场）", "新增运维中心（作业执行/作业历史/定时任务/主机清单）", "新增 Ansible 运维自动化模块（主机清单/Ping检测/作业调度）", "数据库管理 AI SQL 生成（通义千问 DashScope Coding Plan 对接）", "Grafana 面板 AI 辅助生成（自然语言描述 -> 面板 JSON）", "新增审批流系统（审批模板/审批记录/审批步骤）", "完善系统管理（部门管理/角色管理/菜单管理/操作日志/用户管理）"],
       fix: ["修复所有 API 路径 /v1/ -> /api/v1/ 统一规范", "修复 auth.py 登录接口 user.role -> user.identity 适配", "修复 Layout 组件 SCSS 变量未导入导致的构建失败", "修复 settings_cache 配置加载问题", "修复 nginx proxy_pass 多余的 /api/ 后缀导致双重路径"],
