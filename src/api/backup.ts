@@ -12,6 +12,8 @@ export interface BackupService {
   serverIp: string;
   serverName: string;
   port: number;
+  processType?: string;
+  processName?: string;
   backupMethod: string;
   backupPath: string;
   enabled: boolean;
@@ -23,6 +25,19 @@ export interface BackupService {
     startedAt: string | null;
     duration: number | null;
   };
+}
+
+export interface ServiceStatus {
+  serviceId: number;
+  serviceName: string;
+  serverIp: string;
+  status: "running" | "stopped" | "error" | "unknown" | "skip";
+  uptime: number | null;
+  pid: number | null;
+  portStatus: "open" | "closed" | "unknown";
+  cpu: string | null;
+  memory: string | null;
+  error: string | null;
 }
 
 export interface ServiceDetail extends BackupService {
@@ -136,6 +151,40 @@ const BackupAPI = {
     return request<any, any>({
       url: `${BACKUP_BASE}/services/${serviceId}/logs/${logId}`,
       method: "delete",
+    });
+  },
+
+  // ==================== 服务状态检测 ====================
+
+  /** 检测所有服务状态 */
+  checkAllStatus() {
+    return request<any, ServiceStatus[]>({
+      url: `${BACKUP_BASE}/status/check`,
+      method: "post",
+    });
+  },
+
+  /** 启动服务 */
+  startService(serviceId: number) {
+    return request<any, any>({
+      url: `${BACKUP_BASE}/services/${serviceId}/start`,
+      method: "post",
+    });
+  },
+
+  /** 停止服务 */
+  stopService(serviceId: number) {
+    return request<any, any>({
+      url: `${BACKUP_BASE}/services/${serviceId}/stop`,
+      method: "post",
+    });
+  },
+
+  /** 重启服务 */
+  restartService(serviceId: number) {
+    return request<any, any>({
+      url: `${BACKUP_BASE}/services/${serviceId}/restart`,
+      method: "post",
     });
   },
 };
