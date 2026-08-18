@@ -223,6 +223,7 @@ const overviewVisible = ref(false);
 const overviewLoading = ref(false);
 const buildOverview = ref<BuildOverview | null>(null);
 const overviewLog = ref("");
+const currentOverviewBuildNumber = ref<number | null>(null);
 
 function getStatusType(status: string) {
   if (status === "SUCCESS") return "success";
@@ -376,6 +377,7 @@ async function viewOverview(job: JenkinsJob) {
     if (targetBuild) {
       const overview = await JenkinsAPI.getBuildOverview(job.name, targetBuild.number);
       buildOverview.value = overview;
+      currentOverviewBuildNumber.value = targetBuild.number;
       // 自动加载日志
       loadOverviewLog();
     } else {
@@ -390,15 +392,10 @@ async function viewOverview(job: JenkinsJob) {
 
 /** 加载概览日志 */
 async function loadOverviewLog() {
-  if (!currentJob.value || !buildOverview.value) return;
+  if (!currentJob.value || !currentOverviewBuildNumber.value) return;
   try {
-    const data = await JenkinsAPI.getBuildLog(currentJob.value.name, buildOverview.value.stages.length > 0 ? buildOverview.value.stages[buildOverview.value.stages.length - 1].startTimeMillis : 1);
-    // 简化：直接获取最后一次构建的日志
-    const buildNum = currentJob.value.lastBuild?.number;
-    if (buildNum) {
-      const logData = await JenkinsAPI.getBuildLog(currentJob.value.name, buildNum);
-      overviewLog.value = logData.log || "";
-    }
+    const logData = await JenkinsAPI.getBuildLog(currentJob.value.name, currentOverviewBuildNumber.value);
+    overviewLog.value = logData.log || "";
   } catch {
     // 日志加载失败不报错
   }
