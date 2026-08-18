@@ -174,6 +174,9 @@
             </div>
           </div>
         </div>
+        <div v-else style="margin-bottom: 20px; padding: 20px; background: #f5f7fa; border-radius: 4px; text-align: center; color: #909399;">
+          安装 Pipeline REST API 插件后可查看详细的构建阶段信息
+        </div>
 
         <!-- 日志查看 -->
         <div v-if="overviewLog" style="margin-top: 20px;">
