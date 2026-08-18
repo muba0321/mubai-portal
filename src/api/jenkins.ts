@@ -30,11 +30,43 @@ export interface JenkinsNode {
   numExecutorsBusy: number;
 }
 
+export interface ParameterDefinition {
+  name: string;
+  type: "string" | "boolean" | "choice";
+  description: string;
+  defaultValue: string | boolean;
+  choices?: string[];
+}
+
+export interface BuildStage {
+  name: string;
+  status: string;
+  startTimeMillis: number;
+  durationMillis: number;
+  pauseDurationMillis: number;
+}
+
+export interface BuildOverview {
+  name: string;
+  status: string;
+  startTimeMillis: number;
+  durationMillis: number;
+  stages: BuildStage[];
+}
+
 export const JenkinsAPI = {
   /** 获取所有流水线 */
   getPipelines() {
     return request<any, JenkinsJob[]>({
       url: `${JENKINS_BASE}/pipelines`,
+      method: "get",
+    });
+  },
+
+  /** 获取流水线配置（参数定义） */
+  getJobConfig(jobName: string) {
+    return request<any, { parameters: ParameterDefinition[]; hasParameters: boolean }>({
+      url: `${JENKINS_BASE}/pipelines/${jobName}/config`,
       method: "get",
     });
   },
@@ -61,6 +93,14 @@ export const JenkinsAPI = {
   getBuildDetail(jobName: string, buildNumber: number) {
     return request({
       url: `${JENKINS_BASE}/pipelines/${jobName}/builds/${buildNumber}`,
+      method: "get",
+    });
+  },
+
+  /** 获取构建概览（stages） */
+  getBuildOverview(jobName: string, buildNumber: number) {
+    return request<any, BuildOverview>({
+      url: `${JENKINS_BASE}/pipelines/${jobName}/builds/${buildNumber}/overview`,
       method: "get",
     });
   },

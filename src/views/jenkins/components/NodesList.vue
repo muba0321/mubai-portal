@@ -51,6 +51,9 @@
         </el-descriptions-item>
         <el-descriptions-item label="执行器总数">{{ nodeDetail.numExecutors }}</el-descriptions-item>
         <el-descriptions-item label="繁忙执行器">{{ nodeDetail.numExecutorsBusy }}</el-descriptions-item>
+        <el-descriptions-item label="离线原因" :span="2" v-if="nodeDetail.offlineCause">
+          {{ nodeDetail.offlineCause?.shortDescription || "未知" }}
+        </el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <el-button @click="nodeDetailVisible = false">关闭</el-button>
@@ -68,7 +71,7 @@ import { ElMessage } from "element-plus";
 const nodes = ref<JenkinsNode[]>([]);
 const loading = ref(false);
 const nodeDetailVisible = ref(false);
-const nodeDetail = ref<JenkinsNode | null>(null);
+const nodeDetail = ref<any>(null);
 
 async function loadNodes() {
   loading.value = true;
@@ -83,7 +86,10 @@ async function loadNodes() {
 
 async function viewNodeDetail(node: JenkinsNode) {
   try {
-    const data = await JenkinsAPI.getNodeDetail(node.name);
+    // 使用 displayName 作为节点名称传递给后端
+    // 后端会处理 "Built-In Node" -> "(master)" 的映射
+    const nodeName = node.name || node.displayName;
+    const data = await JenkinsAPI.getNodeDetail(nodeName);
     nodeDetail.value = data;
     nodeDetailVisible.value = true;
   } catch {
