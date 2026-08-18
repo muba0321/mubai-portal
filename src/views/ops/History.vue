@@ -36,6 +36,12 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="失败主机" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.failHostCount > 0" type="danger" size="small">{{ row.failHostCount }} 台</el-tag>
+            <span v-else style="color: #909399">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="耗时" prop="duration" width="80" align="center">
           <template #default="{ row }">
             {{ row.duration }}s
@@ -82,7 +88,29 @@
         </el-descriptions>
 
         <div v-if="detail.results" class="results-section" style="margin-top: 16px">
-          <h4>执行结果</h4>
+          <div class="result-header">
+            <h4 style="margin: 0">执行结果</h4>
+            <el-button v-if="detail.failHostCount > 0" type="primary" size="small" :loading="retrying" @click="retryFailed">
+              <el-icon><Refresh /></el-icon> 重试失败主机 ({{ detail.failHostCount }})
+            </el-button>
+          </div>
+
+          <!-- 结果总览表格 -->
+          <el-table :data="Object.values(detail.results)" size="small" max-height="300" style="margin-bottom: 12px" stripe>
+            <el-table-column label="主机" prop="host" width="160" />
+            <el-table-column label="状态" width="90" align="center">
+              <template #default="{ row }">
+                <el-tag :type="statusType(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="退出码" prop="exit_code" width="70" align="center" />
+            <el-table-column label="耗时" width="70" align="center">
+              <template #default="{ row }">{{ row.duration ?? 0 }}s</template>
+            </el-table-column>
+            <el-table-column label="错误" prop="error" show-overflow-tooltip />
+          </el-table>
+
+          <!-- 详细输出 -->
           <el-collapse>
             <el-collapse-item v-for="(result, host) in detail.results" :key="host" :title="host" :name="host">
               <el-tag :type="result.status === 'success' ? 'success' : 'danger'" size="small" style="margin-bottom: 8px">
@@ -113,6 +141,7 @@ const statusFilter = ref("");
 
 const detailVisible = ref(false);
 const detail = ref<AnsibleJobDetail | null>(null);
+const retrying = ref(false);
 
 function statusType(status: string): "success" | "danger" | "warning" | "info" {
   const map: Record<string, "success" | "danger" | "warning" | "info"> = {
@@ -152,6 +181,22 @@ async function viewDetail(job: AnsibleJob) {
   }
 }
 
+async function retryFailed() {
+  if (!detail.value) return;
+  retrying.value = true;
+  try {
+    const resp = await AnsibleAPI.retryJob(detail.value.id);
+    ElMessage.success(`重试完成：${resp.successCount} 成功 / ${resp.failCount} 失败`);
+    // 刷新详情
+    detail.value = await AnsibleAPI.getJob(detail.value.id);
+    fetchData();
+  } catch (e: any) {
+    ElMessage.error(e.message || "重试失败");
+  } finally {
+    retrying.value = false;
+  }
+}
+
 onMounted(() => { fetchData(); });
 </script>
 
@@ -167,4 +212,5 @@ onMounted(() => { fetchData(); });
   line-height: 1.5; max-height: 300px; overflow: auto; white-space: pre-wrap;
   word-break: break-all; margin: 0;
 }
+.result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 </style>

@@ -25,12 +25,31 @@ export interface CommandTemplate {
   module: string;
 }
 
+// 单主机执行结果
+export interface HostResult {
+  host: string;
+  output: string;
+  error: string;
+  exit_code: number;
+  status: "success" | "failed" | "timeout" | "unreachable" | "error";
+  duration: number;
+}
+
+// 主机状态汇总
+export interface HostSummary {
+  success: Array<{ host: string; duration: number }>;
+  failed: Array<{ host: string; error: string; exit_code: number; duration: number }>;
+  timeout: Array<{ host: string; error: string; duration: number }>;
+  unreachable: Array<{ host: string; error: string }>;
+}
+
 export interface JobResult {
   host: string;
   output: string;
   error: string;
   exit_code: number;
   status: string;
+  duration?: number;
 }
 
 export interface AnsibleJob {
@@ -43,6 +62,7 @@ export interface AnsibleJob {
   createdBy: string;
   startedAt: string;
   duration: number;
+  failHostCount: number;
   createdAt: string;
 }
 
@@ -50,7 +70,8 @@ export interface AnsibleJobDetail extends AnsibleJob {
   moduleArgs: string;
   extraVars: Record<string, any>;
   finishedAt: string;
-  results: Record<string, JobResult>;
+  results: Record<string, HostResult>;
+  hostSummary?: HostSummary;
   errorMsg: string;
 }
 
@@ -75,6 +96,29 @@ export interface ScheduleLog {
   errorMsg: string;
   duration: number;
   startedAt: string;
+  report?: TaskReport;
+}
+
+// ==================== 定时任务报告类型 ====================
+
+export interface TaskIssue {
+  host: string;
+  level: "info" | "warning" | "critical";
+  title: string;
+  expected: string;
+  actual: string;
+  impact: string;
+  suggestion: string;
+}
+
+export interface TaskReport {
+  task_name: string;
+  task_type: string;
+  total_hosts: number;
+  summary: Record<string, any>;
+  details: any[];
+  issues: TaskIssue[];
+  raw_output: string;
 }
 
 export interface TaskType {
@@ -147,7 +191,8 @@ const AnsibleAPI = {
       totalHosts: number;
       successCount: number;
       failCount: number;
-      results: Record<string, JobResult>;
+      results: Record<string, HostResult>;
+      hostSummary?: HostSummary;
     }>({
       url: `${ANSIBLE_BASE}/jobs`,
       method: "post",
@@ -169,6 +214,23 @@ const AnsibleAPI = {
     return request<any, AnsibleJobDetail>({
       url: `${ANSIBLE_BASE}/jobs/${jobId}`,
       method: "get",
+    });
+  },
+
+  /** 重试失败主机 */
+  retryJob(jobId: number) {
+    return request<any, {
+      jobId: number;
+      status: string;
+      duration: number;
+      totalHosts: number;
+      successCount: number;
+      failCount: number;
+      results: Record<string, HostResult>;
+      hostSummary?: HostSummary;
+    }>({
+      url: `${ANSIBLE_BASE}/jobs/${jobId}/retry`,
+      method: "post",
     });
   },
 

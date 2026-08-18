@@ -110,28 +110,107 @@
     </el-dialog>
 
     <!-- 日志详情弹窗 -->
-    <el-dialog v-model="logDetailVisible" title="执行详情" width="800px">
-      <div v-if="logDetail">
-        <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="状态">
-            <el-tag :type="logStatusType(logDetail.status)" size="small">{{ logDetail.status }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="耗时">{{ logDetail.duration }}s</el-descriptions-item>
-          <el-descriptions-item label="时间" :span="2">{{ logDetail.startedAt }}</el-descriptions-item>
-        </el-descriptions>
-        <div v-if="logDetail.output" style="margin-top: 12px">
-          <h4>执行输出</h4>
-          <pre class="output-box">{{ logDetail.output }}</pre>
+    <el-dialog v-model="logDetailVisible" :title="report?.task_name || '执行详情'" width="960px" destroy-on-close>
+      <div v-if="logDetail && report" class="task-report">
+        <!-- 顶部状态栏 -->
+        <div class="report-header">
+          <div class="header-left">
+            <el-tag :type="logStatusType(logDetail.status)" size="large" effect="dark">
+              {{ logDetail.status === 'warning' ? '⚠️ 异常' : logDetail.status === 'success' ? '✅ 正常' : logDetail.status }}
+            </el-tag>
+            <span class="header-meta">
+              <el-icon><Clock /></el-icon> {{ logDetail.duration }}s
+              <el-divider direction="vertical" />
+              <el-icon><Monitor /></el-icon> {{ report.total_hosts }} 台主机
+            </span>
+          </div>
+          <div class="header-right">
+            <span class="header-time">{{ logDetail.startedAt }}</span>
+          </div>
         </div>
+
+        <!-- 摘要统计卡片 -->
+        <div class="summary-grid" v-if="summaryCards.length">
+          <div v-for="(card, i) in summaryCards" :key="i" class="stat-card" :style="{ borderColor: card.color }">
+            <div class="stat-value" :style="{ color: card.color }">{{ card.value }}</div>
+            <div class="stat-label">{{ card.label }}</div>
+          </div>
+        </div>
+
+        <!-- 问题列表 -->
+        <div v-if="report.issues.length" class="issues-section">
+          <div class="section-title">
+            <el-icon><WarningFilled /></el-icon>
+            <span>发现的问题 ({{ report.issues.length }})</span>
+          </div>
+          <div class="issue-list">
+            <div v-for="(issue, i) in report.issues" :key="i" class="issue-item" :class="'level-' + issue.level">
+              <div class="issue-header">
+                <span class="issue-level-tag" :class="'tag-' + issue.level">
+                  {{ issue.level === 'critical' ? '严重' : '警告' }}
+                </span>
+                <span class="issue-host">{{ issue.host }}</span>
+                <span class="issue-title">{{ issue.title }}</span>
+              </div>
+              <div class="issue-body">
+                <div class="issue-row"><span class="label">期望</span><span>{{ issue.expected }}</span></div>
+                <div class="issue-row"><span class="label">实际</span><span class="actual">{{ issue.actual }}</span></div>
+                <div class="issue-row"><span class="label">影响</span><span>{{ issue.impact }}</span></div>
+                <div class="issue-row"><span class="label">建议</span><span class="suggestion">{{ issue.suggestion }}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 无问题 -->
+        <div v-else class="all-clear">
+          <el-icon :size="48" color="#67c23a"><CircleCheckFilled /></el-icon>
+          <div class="all-clear-text">所有检查项正常</div>
+        </div>
+
+        <!-- 主机明细表格 -->
+        <div v-if="report.details.length" class="details-section">
+          <el-collapse>
+            <el-collapse-item>
+              <template #title>
+                <span class="collapse-title">
+                  <el-icon><List /></el-icon> 主机明细 ({{ report.details.length }} 台)
+                </span>
+              </template>
+              <el-table :data="report.details" size="small" stripe>
+                <el-table-column label="主机" prop="host" width="150" />
+                <el-table-column label="名称" prop="name" width="150" show-overflow-tooltip />
+                <el-table-column label="状态" width="80" align="center">
+                  <template #default="{ row }">
+                    <el-tag :type="getHostStatusType(row)" size="small" effect="dark">{{ getHostStatusText(row) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="详情">
+                  <template #default="{ row }">
+                    <span class="host-detail-text">{{ formatHostDetail(row) }}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+
+        <!-- 错误信息 -->
         <el-alert v-if="logDetail.errorMsg" :title="logDetail.errorMsg" type="error" :closable="false" show-icon style="margin-top: 12px" />
+      </div>
+
+      <!-- 无结构化数据时显示原始输出 -->
+      <div v-else-if="logDetail" class="raw-output-only">
+        <el-alert type="info" :closable="false">本次执行无结构化报告，以下为原始输出：</el-alert>
+        <pre class="output-box" style="margin-top: 12px">{{ logDetail.output || '(无输出)' }}</pre>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Plus } from "@element-plus/icons-vue";
-import AnsibleAPI, { type AnsibleSchedule, type ScheduleLog, type TaskType } from "@/api/ansible";
+import { Plus, Clock, Monitor, WarningFilled, CircleCheckFilled, List } from "@element-plus/icons-vue";
+import AnsibleAPI, { type AnsibleSchedule, type ScheduleLog, type TaskType, type TaskReport, type TaskIssue } from "@/api/ansible";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 defineOptions({ name: "AnsibleSchedules" });
@@ -160,6 +239,7 @@ const pageSize = ref(20);
 const currentScheduleId = ref(0);
 const logDetailVisible = ref(false);
 const logDetail = ref<ScheduleLog | null>(null);
+const report = ref<TaskReport | null>(null);
 
 const taskTypeLabels: Record<string, string> = {
   command: "SSH 命令", cmdb_update: "CMDB 巡检", disk_check: "磁盘检查",
@@ -282,7 +362,73 @@ async function fetchLogs() {
 
 function viewLogDetail(row: ScheduleLog) {
   logDetail.value = row;
+  report.value = row.report || null;
   logDetailVisible.value = true;
+}
+
+// 摘要卡片计算
+const summaryCards = computed(() => {
+  if (!report.value) return [];
+  const s = report.value.summary;
+  const taskType = report.value.task_type;
+
+  if (taskType === "cmdb_update") {
+    return [
+      { label: "在线", value: s.online ?? 0, color: "#67c23a" },
+      { label: "离线", value: s.offline ?? 0, color: "#f56c6c" },
+      { label: "变化", value: s.changes?.length ?? 0, color: "#e6a23c" },
+    ];
+  } else if (taskType === "disk_check") {
+    return [
+      { label: "正常", value: s.normal ?? 0, color: "#67c23a" },
+      { label: "警告", value: s.warning ?? 0, color: "#e6a23c" },
+      { label: "严重", value: s.critical ?? 0, color: "#f56c6c" },
+      { label: "错误", value: s.error ?? 0, color: "#909399" },
+    ];
+  } else if (taskType === "service_check") {
+    return [
+      { label: "健康", value: s.healthy ?? 0, color: "#67c23a" },
+      { label: "部分异常", value: s.partial ?? 0, color: "#e6a23c" },
+      { label: "全部停止", value: s.all_down ?? 0, color: "#f56c6c" },
+      { label: "错误", value: s.error ?? 0, color: "#909399" },
+    ];
+  }
+  return [];
+});
+
+function getHostStatusType(row: any): "success" | "danger" | "warning" | "info" {
+  const status = row.status || row.overall;
+  if (status === "online" || status === "healthy") return "success";
+  if (status === "offline" || status === "all_down" || status === "critical" || status === "error") return "danger";
+  if (status === "partial" || status === "warning") return "warning";
+  return "info";
+}
+
+function getHostStatusText(row: any): string {
+  const status = row.status || row.overall;
+  const map: Record<string, string> = {
+    online: "在线", offline: "离线", healthy: "健康",
+    partial: "部分", all_down: "全停", error: "错误",
+  };
+  return map[status] || status || "-";
+}
+
+function formatHostDetail(row: any): string {
+  if (row.partitions) {
+    return row.partitions.map((p: any) => `${p.mount}=${p.usage}`).join(", ") || "-";
+  }
+  if (row.services) {
+    return row.services.map((s: any) => `${s.name}:${s.status}`).join(", ") || "-";
+  }
+  if (row.containers) {
+    const parts: string[] = [];
+    if (row.containers.length) parts.push(`容器:${row.containers.length}`);
+    if (row.ports?.length) parts.push(`端口:${row.ports.length}`);
+    if (row.disk_usage) parts.push(`磁盘:${row.disk_usage}`);
+    if (row.memory_usage) parts.push(`内存:${row.memory_usage}`);
+    return parts.join(" | ") || "-";
+  }
+  return row.error || "-";
 }
 
 onMounted(() => {
@@ -300,4 +446,73 @@ onMounted(() => {
   line-height: 1.5; max-height: 400px; overflow: auto; white-space: pre-wrap;
   word-break: break-all; margin: 0;
 }
+
+/* ========== 任务报告美化 ========== */
+.task-report { min-height: 200px; }
+
+/* 顶部状态栏 */
+.report-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-radius: 8px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  margin-bottom: 16px;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-meta { color: #606266; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.header-right .header-time { color: #909399; font-size: 13px; }
+
+/* 摘要统计卡片网格 */
+.summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px; margin-bottom: 16px;
+}
+.stat-card {
+  text-align: center; padding: 16px 8px; border-radius: 8px;
+  background: #fff; border: 1px solid #e4e7ed; border-left: 3px solid;
+}
+.stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+.stat-label { font-size: 12px; color: #909399; margin-top: 6px; }
+
+/* 问题列表 */
+.issues-section { margin-bottom: 16px; }
+.section-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 15px; font-weight: 600; color: #303133;
+  margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #ebeef5;
+}
+.issue-list { display: flex; flex-direction: column; gap: 10px; }
+.issue-item {
+  border-radius: 8px; padding: 14px 16px;
+  border: 1px solid #ebeef5; border-left: 3px solid;
+  background: #fff;
+}
+.issue-item.level-critical { border-left-color: #f56c6c; background: #fef0f0; }
+.issue-item.level-warning { border-left-color: #e6a23c; background: #fdf6ec; }
+.issue-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.issue-level-tag {
+  padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #fff;
+}
+.issue-level-tag.tag-critical { background: #f56c6c; }
+.issue-level-tag.tag-warning { background: #e6a23c; }
+.issue-host { font-weight: 600; color: #303133; font-size: 13px; }
+.issue-title { color: #606266; font-size: 13px; }
+.issue-body { font-size: 13px; line-height: 1.8; color: #606266; }
+.issue-row { display: flex; gap: 6px; }
+.issue-row .label { color: #909399; white-space: nowrap; min-width: 40px; }
+.issue-row .actual { color: #f56c6c; font-weight: 500; }
+.issue-row .suggestion { color: #67c23a; }
+
+/* 无问题状态 */
+.all-clear {
+  text-align: center; padding: 32px 0; color: #67c23a;
+}
+.all-clear-text { font-size: 15px; margin-top: 8px; color: #606266; }
+
+/* 主机明细 */
+.details-section { margin-top: 16px; }
+.collapse-title { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+.host-detail-text { font-size: 12px; color: #606266; font-family: "JetBrains Mono", monospace; }
+
+/* 无结构化数据 */
+.raw-output-only { padding: 8px 0; }
 </style>

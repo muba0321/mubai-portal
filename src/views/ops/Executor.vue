@@ -67,16 +67,43 @@
           <div class="result-summary">
             <el-tag type="success" size="small">成功 {{ successCount }}</el-tag>
             <el-tag type="danger" size="small" v-if="failCount > 0">失败 {{ failCount }}</el-tag>
-            <el-tag type="info" size="small">耗时 {{ duration }}s</el-tag>
+            <el-tag type="warning" size="small" v-if="timeoutCount > 0">超时 {{ timeoutCount }}</el-tag>
+            <el-tag type="info" size="small" v-if="unreachableCount > 0">不可达 {{ unreachableCount }}</el-tag>
+            <el-tag type="info" size="small">总耗时 {{ duration }}s</el-tag>
           </div>
         </div>
       </template>
 
+      <!-- 结果总览表格 -->
+      <el-table :data="results" size="small" max-height="300" style="margin-bottom: 16px" stripe>
+        <el-table-column label="主机" prop="host" width="160" />
+        <el-table-column label="状态" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.status)" size="small">
+              {{ getStatusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="退出码" prop="exit_code" width="70" align="center" />
+        <el-table-column label="耗时" width="70" align="center">
+          <template #default="{ row }">{{ row.duration ?? 0 }}s</template>
+        </el-table-column>
+        <el-table-column label="错误信息" prop="error" show-overflow-tooltip />
+        <el-table-column label="操作" width="80" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button v-if="row.status !== 'success'" type="primary" link size="small" @click="retryHost(row.host)">
+              重试
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 详细输出（按需展开） -->
       <el-collapse v-model="expandedResults">
         <el-collapse-item v-for="r in results" :key="r.host" :title="r.host" :name="r.host">
           <div class="result-content">
-            <el-tag :type="r.status === 'success' ? 'success' : 'danger'" size="small" style="margin-bottom: 8px">
-              {{ r.status === 'success' ? '成功' : r.status === 'timeout' ? '超时' : '失败' }}
+            <el-tag :type="getStatusType(r.status)" size="small" style="margin-bottom: 8px">
+              {{ getStatusText(r.status) }}
               <span v-if="r.exit_code !== undefined"> (exit: {{ r.exit_code }})</span>
             </el-tag>
             <pre class="output-box">{{ r.output || r.error || '(无输出)' }}</pre>
@@ -139,8 +166,26 @@ const executing = ref(false);
 const results = ref<(JobResult & { host: string })[]>([]);
 const expandedResults = ref<string[]>([]);
 const successCount = computed(() => results.value.filter(r => r.status === "success").length);
-const failCount = computed(() => results.value.filter(r => r.status !== "success").length);
+const failCount = computed(() => results.value.filter(r => r.status === "failed" || r.status === "error").length);
+const timeoutCount = computed(() => results.value.filter(r => r.status === "timeout").length);
+const unreachableCount = computed(() => results.value.filter(r => r.status === "unreachable").length);
 const duration = ref(0);
+
+function getStatusType(status: string): "success" | "danger" | "warning" | "info" {
+  const map: Record<string, "success" | "danger" | "warning" | "info"> = {
+    success: "success", failed: "danger", error: "danger",
+    timeout: "warning", unreachable: "info",
+  };
+  return map[status] || "info";
+}
+
+function getStatusText(status: string): string {
+  const map: Record<string, string> = {
+    success: "成功", failed: "失败", error: "错误",
+    timeout: "超时", unreachable: "不可达",
+  };
+  return map[status] || status;
+}
 
 function selectCommand(cmd: CommandTemplate) {
   form.command = cmd.command;
@@ -209,14 +254,44 @@ async function executeJob() {
     if (resp.status === "success") {
       ElMessage.success(`执行成功 (${resp.successCount}/${resp.totalHosts})`);
     } else if (resp.status === "partial") {
-      ElMessage.warning(`部分成功 (${resp.successCount}/${resp.totalHosts})`);
+      ElMessage.warning(`部分成功：${resp.successCount} 成功 / ${resp.failCount} 失败`);
     } else {
-      ElMessage.error(`执行失败`);
+      ElMessage.error(`执行失败 (${resp.failCount}/${resp.totalHosts})`);
     }
   } catch (e: any) {
     ElMessage.error(e.message || "执行出错");
   } finally {
     executing.value = false;
+  }
+}
+
+// 重试单台主机
+async function retryHost(host: string) {
+  if (!form.command.trim()) return;
+  ElMessage.info(`正在重试 ${host}...`);
+  try {
+    let command = form.command;
+    const vars: Record<string, string> = { ...extraVars.value };
+    for (const [key, val] of Object.entries(vars)) {
+      command = command.replace(new RegExp(`\\{${key}\\}`, "g"), val);
+    }
+    const resp = await AnsibleAPI.createJob({
+      name: `${form.command.slice(0, 50)} (重试)`,
+      command,
+      hosts: [host],
+    });
+    // 将重试结果合并到当前结果中
+    const idx = results.value.findIndex(r => r.host === host);
+    if (idx >= 0) {
+      results.value[idx] = { ...resp.results?.[host], host } as any;
+    }
+    if (resp.status === "success") {
+      ElMessage.success(`${host} 重试成功`);
+    } else {
+      ElMessage.error(`${host} 重试失败`);
+    }
+  } catch (e: any) {
+    ElMessage.error(`${host} 重试出错: ${e.message}`);
   }
 }
 
