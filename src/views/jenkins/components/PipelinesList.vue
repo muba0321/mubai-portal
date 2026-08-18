@@ -362,18 +362,19 @@ async function viewOverview(job: JenkinsJob) {
   overviewLog.value = "";
 
   try {
-    // 获取最后一次构建的概览
-    let buildNumber = job.lastBuild?.number;
-    if (!buildNumber) {
-      // 如果没有 lastBuild，获取构建历史
-      const data = await JenkinsAPI.getBuilds(job.name, { page: 1, pageSize: 1 });
-      if (data.list && data.list.length > 0) {
-        buildNumber = data.list[0].number;
-      }
+    // 获取构建历史，找到最近一次成功的构建
+    const data = await JenkinsAPI.getBuilds(job.name, { page: 1, pageSize: 10 });
+    const builds = data.list || [];
+
+    // 优先找成功的构建
+    let targetBuild = builds.find(b => b.status === 'SUCCESS');
+    if (!targetBuild) {
+      // 如果没有成功的，找最近的构建
+      targetBuild = builds.length > 0 ? builds[0] : null;
     }
 
-    if (buildNumber) {
-      const overview = await JenkinsAPI.getBuildOverview(job.name, buildNumber);
+    if (targetBuild) {
+      const overview = await JenkinsAPI.getBuildOverview(job.name, targetBuild.number);
       buildOverview.value = overview;
       // 自动加载日志
       loadOverviewLog();
