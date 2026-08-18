@@ -181,6 +181,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/ops/Inventory.vue"),
         meta: { title: "主机清单", icon: "el-icon-Grid" },
       },
+      {
+        path: "jenkins",
+        name: "JenkinsManage",
+        component: () => import("@/views/jenkins/index.vue"),
+        meta: { title: "Jenkins 管理", icon: "el-icon-Connection" },
+      },
     ],
   },
 
