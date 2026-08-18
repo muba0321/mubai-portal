@@ -287,24 +287,31 @@
         <!-- 最近备份记录 -->
         <div class="detail-section" style="margin-top: 16px">
           <h4 class="section-title">最近备份记录</h4>
-          <el-table :data="bkDetailLogs" size="small" stripe v-loading="bkLogsLoading" max-height="260">
-            <el-table-column label="时间" prop="startedAt" width="170" />
-            <el-table-column label="状态" width="80" align="center">
+          <el-table :data="bkDetailLogs" size="small" stripe v-loading="bkLogsLoading" max-height="300">
+            <el-table-column label="时间" prop="startedAt" width="160" />
+            <el-table-column label="文件名" prop="fileName" width="200" show-overflow-tooltip />
+            <el-table-column label="大小" width="90">
+              <template #default="{ row }">
+                {{ row.fileSize ? formatSize(row.fileSize) : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="MD5" width="260" show-overflow-tooltip>
+              <template #default="{ row }">
+                <code v-if="row.fileMd5" class="md5-text">{{ row.fileMd5 }}</code>
+                <span v-else style="color: #c0c4cc">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="70" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'success' ? 'success' : 'danger'" size="small">
                   {{ row.status === 'success' ? '成功' : '失败' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="大小" width="90">
-              <template #default="{ row }">
-                {{ row.fileSize ? formatSize(row.fileSize) : '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column label="耗时" width="70" align="center">
+            <el-table-column label="耗时" width="60" align="center">
               <template #default="{ row }">{{ row.duration }}s</template>
             </el-table-column>
-            <el-table-column label="文件路径" show-overflow-tooltip>
+            <el-table-column label="路径" show-overflow-tooltip>
               <template #default="{ row }">{{ row.filePath || row.errorMsg }}</template>
             </el-table-column>
           </el-table>
@@ -572,6 +579,7 @@ onMounted(() => {
 .server-text { font-size: 13px; color: #606266; }
 .path-text { font-size: 12px; color: #409eff; font-family: "JetBrains Mono", monospace; }
 .uptime-text { font-size: 13px; color: #67c23a; font-weight: 500; }
+.md5-text { font-size: 11px; color: #409eff; font-family: "JetBrains Mono", monospace; }
 
 /* 详情弹窗 */
 .detail-section { }

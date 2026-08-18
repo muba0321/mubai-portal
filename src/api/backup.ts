@@ -60,8 +60,10 @@ export interface RestoreStep {
 export interface BackupLog {
   id: number;
   status: string;
+  fileName: string;
   filePath: string;
   fileSize: number;
+  fileMd5: string;
   errorMsg: string;
   duration: number;
   startedAt: string;
