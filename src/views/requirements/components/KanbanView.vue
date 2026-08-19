@@ -101,7 +101,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { Calendar, Paperclip, ChatDotRound } from "@element-plus/icons-vue";
-import { TodoExtendAPI, ProjectAPI, type TodoItem, type Project } from "@/api/todo";
+import { TodoExtendAPI, ProjectAPI, type TodoItem, type Project } from "@/api/requirement";
 import TodoDetailDialog from "./TodoDetailDialog.vue";
 import { ElMessage } from "element-plus";
 

@@ -70,19 +70,19 @@
           </el-card>
         </el-col>
 
-        <!-- Right Panel: Todo List -->
+        <!-- Right Panel: Requirement List -->
         <el-col :span="18">
           <el-card shadow="hover" class="todo-panel">
             <template #header>
               <div class="panel-header">
-                <span>{{ currentProjectName ? `${currentProjectName} - 待办项` : "请选择项目" }}</span>
+                <span>{{ currentProjectName ? `${currentProjectName} - 需求列表` : "请选择项目" }}</span>
                 <el-button
                   type="primary"
                   size="small"
                   :disabled="!selectedProjectId"
                   @click="openTodoDialog()"
                 >
-                  <el-icon class="mr-1"><Plus /></el-icon>新建待办
+                  <el-icon class="mr-1"><Plus /></el-icon>新建需求
                 </el-button>
               </div>
             </template>
@@ -105,6 +105,14 @@
                 </template>
               </el-table-column>
 
+              <el-table-column prop="requirementType" label="类型" width="90" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="typeTagType(row.requirementType)" size="small" effect="plain">
+                    {{ typeLabel(row.requirementType) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+
               <el-table-column prop="status" label="状态" width="100" align="center">
                 <template #default="{ row }">
                   <el-tag :type="statusTagType(row.status)" size="small">
@@ -116,7 +124,7 @@
               <el-table-column prop="priority" label="优先级" width="90" align="center">
                 <template #default="{ row }">
                   <el-tag :type="priorityTagType(row.priority)" size="small">
-                    {{ priorityLabel(row.priority) }}
+                    {{ row.priority }}
                   </el-tag>
                 </template>
               </el-table-column>
@@ -163,7 +171,7 @@
       <StatisticsView />
     </div>
 
-    <!-- 任务详情对话框 -->
+    <!-- 需求详情对话框 -->
     <TodoDetailDialog
       v-model="detailVisible"
       :todo-id="selectedTodoId"
@@ -186,39 +194,42 @@
       </template>
     </el-dialog>
 
-    <!-- 待办对话框 -->
-    <el-dialog v-model="todoDialogVisible" title="新建待办" width="600px">
+    <!-- 需求对话框 -->
+    <el-dialog v-model="todoDialogVisible" title="新建需求" width="600px">
       <el-form :model="todoForm" label-width="80px">
         <el-form-item label="标题" required>
-          <el-input v-model="todoForm.title" placeholder="输入待办标题" />
+          <el-input v-model="todoForm.title" placeholder="输入需求标题" />
+        </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="todoForm.requirementType" style="width: 100%">
+            <el-option label="功能需求" value="feature" />
+            <el-option label="Bug 修复" value="bug" />
+            <el-option label="任务" value="task" />
+            <el-option label="优化改进" value="improvement" />
+            <el-option label="技术债务" value="tech_debt" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="优先级">
+          <el-select v-model="todoForm.priority" style="width: 100%">
+            <el-option label="P0 紧急" value="P0" />
+            <el-option label="P1 高" value="P1" />
+            <el-option label="P2 中" value="P2" />
+            <el-option label="P3 低" value="P3" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="负责人">
+          <el-input v-model="todoForm.assignee" placeholder="请输入负责人" />
+        </el-form-item>
+        <el-form-item label="截止日期">
+          <el-date-picker
+            v-model="todoForm.dueDate"
+            type="datetime"
+            placeholder="选择截止日期"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="todoForm.description" type="textarea" :rows="3" />
-        </el-form-item>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="优先级">
-              <el-select v-model="todoForm.priority" style="width: 100%">
-                <el-option label="低" value="low" />
-                <el-option label="中" value="medium" />
-                <el-option label="高" value="high" />
-                <el-option label="紧急" value="urgent" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="截止日期">
-              <el-date-picker
-                v-model="todoForm.dueDate"
-                type="datetime"
-                placeholder="选择截止日期"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="负责人">
-          <el-input v-model="todoForm.assignee" placeholder="输入负责人" />
+          <el-input v-model="todoForm.description" type="textarea" :rows="3" placeholder="请输入需求描述" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -234,10 +245,10 @@ import { ref, computed, defineAsyncComponent } from "vue";
 import {
   List, Grid, Calendar, DataAnalysis, Plus, EditPen, Delete,
 } from "@element-plus/icons-vue";
-import { ProjectAPI, TodoAPI, type Project, type TodoItem } from "@/api/todo";
+import RequirementAPI, { type Project, type Requirement } from "@/api/requirement";
 import { ElMessage, ElMessageBox } from "element-plus";
 
-// 懒加载重组件，提升首屏加载速度
+// 懒加载重组件
 const KanbanView = defineAsyncComponent(() => import("./components/KanbanView.vue"));
 const CalendarView = defineAsyncComponent(() => import("./components/CalendarView.vue"));
 const StatisticsView = defineAsyncComponent(() => import("./components/StatisticsView.vue"));
@@ -251,17 +262,18 @@ const projectList = ref<Project[]>([]);
 const projectLoading = ref(false);
 const selectedProjectId = ref<number>();
 const projectDialogVisible = ref(false);
-const projectForm = ref<Project>({ name: "", description: "", status: "active" });
+const projectForm = ref<Project>({ id: undefined, name: "", description: "", status: "active", createdAt: "" });
 
-// 待办相关
-const todoList = ref<TodoItem[]>([]);
+// 需求相关
+const todoList = ref<Requirement[]>([]);
 const todoLoading = ref(false);
 const todoDialogVisible = ref(false);
-const todoForm = ref<Partial<TodoItem>>({
+const todoForm = ref<Partial<Requirement>>({
   title: "",
   description: "",
-  priority: "medium",
-  status: "pending",
+  priority: "P2",
+  requirementType: "task",
+  status: "proposed",
 });
 
 // 详情对话框
@@ -275,7 +287,7 @@ const currentProjectName = computed(() => {
 async function loadProjects() {
   projectLoading.value = true;
   try {
-    const data = await ProjectAPI.getList();
+    const data = await RequirementAPI.getProjects();
     projectList.value = data || [];
   } catch (error) {
     ElMessage.error("加载项目失败");
@@ -288,10 +300,10 @@ async function loadTodos() {
   if (!selectedProjectId.value) return;
   todoLoading.value = true;
   try {
-    const data = await TodoAPI.getList({ projectId: selectedProjectId.value });
+    const data = await RequirementAPI.getRequirements({ projectId: selectedProjectId.value });
     todoList.value = data || [];
   } catch (error) {
-    ElMessage.error("加载待办失败");
+    ElMessage.error("加载需求失败");
   } finally {
     todoLoading.value = false;
   }
@@ -303,7 +315,7 @@ function selectProject(id: number) {
 }
 
 function openProjectDialog(project?: Project) {
-  projectForm.value = project || { name: "", description: "", status: "active" };
+  projectForm.value = project ? { ...project } : { id: undefined, name: "", description: "", status: "active", createdAt: "" };
   projectDialogVisible.value = true;
 }
 
@@ -315,10 +327,10 @@ async function saveProject() {
 
   try {
     if (projectForm.value.id) {
-      await ProjectAPI.update(projectForm.value.id, projectForm.value);
+      await RequirementAPI.updateProject(projectForm.value.id, projectForm.value);
       ElMessage.success("项目已更新");
     } else {
-      await ProjectAPI.create(projectForm.value);
+      await RequirementAPI.createProject(projectForm.value);
       ElMessage.success("项目已创建");
     }
     projectDialogVisible.value = false;
@@ -330,10 +342,10 @@ async function saveProject() {
 
 async function handleDeleteProject(id: number) {
   try {
-    await ElMessageBox.confirm("确定要删除这个项目吗？项目下的所有待办项也会被删除。", "警告", {
+    await ElMessageBox.confirm("确定要删除这个项目吗？项目下的所有需求也会被删除。", "警告", {
       type: "warning",
     });
-    await ProjectAPI.delete(id);
+    await RequirementAPI.deleteProject(id);
     ElMessage.success("项目已删除");
     if (selectedProjectId.value === id) {
       selectedProjectId.value = undefined;
@@ -349,8 +361,9 @@ function openTodoDialog() {
   todoForm.value = {
     title: "",
     description: "",
-    priority: "medium",
-    status: "pending",
+    priority: "P2",
+    requirementType: "task",
+    status: "proposed",
     projectId: selectedProjectId.value,
   };
   todoDialogVisible.value = true;
@@ -358,13 +371,13 @@ function openTodoDialog() {
 
 async function saveTodo() {
   if (!todoForm.value.title) {
-    ElMessage.warning("请输入待办标题");
+    ElMessage.warning("请输入需求标题");
     return;
   }
 
   try {
-    await TodoAPI.create(todoForm.value as any);
-    ElMessage.success("待办已创建");
+    await RequirementAPI.createRequirement(todoForm.value as any);
+    ElMessage.success("需求已创建");
     todoDialogVisible.value = false;
     loadTodos();
   } catch (error: any) {
@@ -374,11 +387,11 @@ async function saveTodo() {
 
 async function handleDeleteTodo(id: number) {
   try {
-    await ElMessageBox.confirm("确定要删除这个待办项吗？", "警告", {
+    await ElMessageBox.confirm("确定要删除这个需求吗？", "警告", {
       type: "warning",
     });
-    await TodoAPI.delete(id);
-    ElMessage.success("待办已删除");
+    await RequirementAPI.deleteRequirement(id);
+    ElMessage.success("需求已删除");
     loadTodos();
   } catch {
     // 取消删除
@@ -392,9 +405,15 @@ function openDetail(todoId: number) {
 
 function statusTagType(status: string) {
   const map: Record<string, "success" | "primary" | "warning" | "info" | "danger"> = {
-    pending: "info",
-    in_progress: "primary",
-    completed: "success",
+    proposed: "info",
+    under_review: "warning",
+    approved: "primary",
+    in_progress: "warning",
+    blocked: "danger",
+    in_testing: "info",
+    re_testing: "warning",
+    done: "success",
+    rejected: "danger",
     cancelled: "danger",
   };
   return map[status] || "info";
@@ -402,32 +421,50 @@ function statusTagType(status: string) {
 
 function statusLabel(status: string) {
   const map: Record<string, string> = {
-    pending: "待处理",
+    proposed: "待处理",
+    under_review: "审核中",
+    approved: "已排期",
     in_progress: "进行中",
-    completed: "已完成",
+    blocked: "已阻塞",
+    in_testing: "测试中",
+    re_testing: "复测中",
+    done: "已完成",
+    rejected: "已拒绝",
     cancelled: "已取消",
   };
   return map[status] || status;
 }
 
-function priorityTagType(priority: string) {
-  const map: Record<string, "success" | "warning" | "danger" | "info"> = {
-    low: "success",
-    medium: "info",
-    high: "warning",
-    urgent: "danger",
+function typeTagType(t: string) {
+  const map: Record<string, "success" | "warning" | "danger" | "info" | "primary"> = {
+    feature: "success",
+    bug: "danger",
+    task: "primary",
+    improvement: "warning",
+    tech_debt: "info",
   };
-  return map[priority] || "info";
+  return map[t] || "info";
 }
 
-function priorityLabel(priority: string) {
+function typeLabel(t: string) {
   const map: Record<string, string> = {
-    low: "低",
-    medium: "中",
-    high: "高",
-    urgent: "紧急",
+    feature: "功能",
+    bug: "Bug",
+    task: "任务",
+    improvement: "优化",
+    tech_debt: "技术债",
   };
-  return map[priority] || priority;
+  return map[t] || t;
+}
+
+function priorityTagType(priority: string) {
+  const map: Record<string, "success" | "warning" | "danger" | "info"> = {
+    P0: "danger",
+    P1: "warning",
+    P2: "primary",
+    P3: "info",
+  };
+  return map[priority] || "info";
 }
 
 function formatDate(dateStr: string) {

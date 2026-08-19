@@ -67,7 +67,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { TodoExtendAPI, type Comment } from "@/api/todo";
+import { TodoExtendAPI, type Comment } from "@/api/requirement";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const props = defineProps<{

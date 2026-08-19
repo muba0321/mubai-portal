@@ -98,7 +98,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import * as echarts from "echarts";
-import { TodoExtendAPI, ProjectAPI, type Project } from "@/api/todo";
+import { TodoExtendAPI, ProjectAPI, type Project } from "@/api/requirement";
 
 const projects = ref<Project[]>([]);
 const selectedProject = ref<number | null>(null);

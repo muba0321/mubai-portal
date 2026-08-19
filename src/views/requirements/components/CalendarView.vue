@@ -60,7 +60,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
-import { TodoExtendAPI, type TodoItem } from "@/api/todo";
+import { TodoExtendAPI, type TodoItem } from "@/api/requirement";
 import TodoDetailDialog from "./TodoDetailDialog.vue";
 
 const year = ref(new Date().getFullYear());

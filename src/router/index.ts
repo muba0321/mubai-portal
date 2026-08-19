@@ -102,18 +102,18 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
-  // 待办管理
+  // 需求管理
   {
     path: "/todo",
     component: Layout,
     redirect: "/todo/index",
-    meta: { title: "待办管理", icon: "el-icon-List" },
+    meta: { title: "需求管理", icon: "el-icon-List" },
     children: [
       {
         path: "index",
-        name: "Todo",
-        component: () => import("@/views/todo/index.vue"),
-        meta: { title: "待办管理", icon: "el-icon-List" },
+        name: "Requirements",
+        component: () => import("@/views/requirements/index.vue"),
+        meta: { title: "需求管理", icon: "el-icon-List" },
       },
     ],
   },

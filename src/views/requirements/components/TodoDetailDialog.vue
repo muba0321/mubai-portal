@@ -20,17 +20,21 @@
       <div class="detail-info">
         <div class="info-row">
           <el-select v-model="editForm.status" placeholder="状态" @change="saveChanges">
-            <el-option label="待处理" value="pending" />
+            <el-option label="待处理" value="proposed" />
+            <el-option label="审核中" value="under_review" />
+            <el-option label="已排期" value="approved" />
             <el-option label="进行中" value="in_progress" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="已取消" value="cancelled" />
+            <el-option label="已阻塞" value="blocked" />
+            <el-option label="测试中" value="in_testing" />
+            <el-option label="已完成" value="done" />
+            <el-option label="已拒绝" value="rejected" />
           </el-select>
 
           <el-select v-model="editForm.priority" placeholder="优先级" @change="saveChanges">
-            <el-option label="低" value="low" />
-            <el-option label="中" value="medium" />
-            <el-option label="高" value="high" />
-            <el-option label="紧急" value="urgent" />
+            <el-option label="P0 紧急" value="P0" />
+            <el-option label="P1 高" value="P1" />
+            <el-option label="P2 中" value="P2" />
+            <el-option label="P3 低" value="P3" />
           </el-select>
 
           <el-input
@@ -86,7 +90,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { TodoAPI, type TodoItem } from "@/api/todo";
+import { TodoAPI, type TodoItem } from "@/api/requirement";
 import { ElMessage } from "element-plus";
 import TagSelector from "./TagSelector.vue";
 import AttachmentList from "./AttachmentList.vue";
@@ -107,8 +111,8 @@ const todoLoaded = ref(false);
 const editForm = ref({
   title: "",
   description: "",
-  status: "pending" as string,
-  priority: "medium" as string,
+  status: "proposed" as string,
+  priority: "P2" as string,
   assignee: "",
   dueDate: "" as string | null,
 });

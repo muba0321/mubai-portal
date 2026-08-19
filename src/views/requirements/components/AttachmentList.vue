@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { Upload, Download, Delete, Document, Picture, VideoPlay, Files } from "@element-plus/icons-vue";
-import { TodoExtendAPI, type Attachment } from "@/api/todo";
+import { RequirementAPI, type Attachment } from "@/api/requirement";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const props = defineProps<{

@@ -68,7 +68,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { Plus, Close } from "@element-plus/icons-vue";
-import { TodoExtendAPI, type Tag } from "@/api/todo";
+import { TodoExtendAPI, type Tag } from "@/api/requirement";
 import { ElMessage } from "element-plus";
 
 const props = defineProps<{
