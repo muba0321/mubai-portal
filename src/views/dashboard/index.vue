@@ -216,9 +216,6 @@ function priorityTagType(p: string): "success" | "warning" | "danger" | "info" {
   const map: Record<string, "success" | "warning" | "danger" | "info"> = { P0: "danger", P1: "warning", P2: "info", P3: "success" };
   return map[p] || "info";
 }
-  const map: Record<string, "success" | "warning" | "danger" | "info"> = { low: "info", medium: "", high: "warning", urgent: "danger" };
-  return map[p] || "info";
-}
 function isOverdue(dueDate: string): boolean {
   if (!dueDate) return false;
   return new Date(dueDate) < new Date();
