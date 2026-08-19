@@ -60,7 +60,7 @@ export interface KanbanData {
 
 // ==================== API 方法 ====================
 
-const RequirementAPI = {
+export const RequirementAPI = {
   // ========== 项目 ==========
   getProjects(status?: string) {
     return request<any, Project[]>({
