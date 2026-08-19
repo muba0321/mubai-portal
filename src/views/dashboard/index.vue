@@ -175,10 +175,9 @@
 <script setup lang="ts">
 import { Monitor, DataAnalysis, Document, Bell, Setting, TrendCharts, User, EditPen, Clock, Link, ArrowRight, Cpu, Connection, DataBoard, Warning, Histogram, Plus, List } from "@element-plus/icons-vue";
 import DashboardAPI from "@/api/dashboard";
-import { TodoAPI } from "@/api/todo";
+import { RequirementAPI, type Requirement } from "@/api/requirement";
 import { useUserStore } from "@/store";
 import { type CommonLink } from "@/api/dashboard";
-import { type TodoItem } from "@/types/api/todo";
 
 defineOptions({ name: "Dashboard" });
 
@@ -209,11 +208,14 @@ const featureCards = [
 ];
 
 // 待办事项
-const todoList = ref<TodoItem[]>([]);
+const todoList = ref<Requirement[]>([]);
 const todoLoading = ref(false);
 
-const priorityLabels: Record<string, string> = { low: "低", medium: "中", high: "高", urgent: "紧急" };
+const priorityLabels: Record<string, string> = { P0: "紧急", P1: "高", P2: "中", P3: "低" };
 function priorityTagType(p: string): "success" | "warning" | "danger" | "info" {
+  const map: Record<string, "success" | "warning" | "danger" | "info"> = { P0: "danger", P1: "warning", P2: "info", P3: "success" };
+  return map[p] || "info";
+}
   const map: Record<string, "success" | "warning" | "danger" | "info"> = { low: "info", medium: "", high: "warning", urgent: "danger" };
   return map[p] || "info";
 }
@@ -305,14 +307,14 @@ async function fetchCommonLinks() {
 async function fetchTodos() {
   todoLoading.value = true;
   try {
-    // 获取未完成和进行中的待办，最多显示 5 条
+    // 获取未完成和进行中的需求，最多显示 5 条
     const [pending, inProgress] = await Promise.all([
-      TodoAPI.getList({ status: "pending" }),
-      TodoAPI.getList({ status: "in_progress" }),
+      RequirementAPI.getRequirements({ status: "proposed" }),
+      RequirementAPI.getRequirements({ status: "in_progress" }),
     ]);
     const all = [...(pending || []), ...(inProgress || [])];
-    // 按优先级排序：urgent > high > medium > low
-    const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+    // 按优先级排序：P0 > P1 > P2 > P3
+    const priorityOrder: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
     all.sort((a, b) => (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9));
     todoList.value = all.slice(0, 5);
   } catch {
