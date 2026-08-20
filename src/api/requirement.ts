@@ -9,6 +9,7 @@ export interface Project {
   name: string;
   description?: string;
   status: "active" | "archived";
+  sort: number;
   createdAt: string;
 }
 
@@ -90,6 +91,15 @@ export const RequirementAPI = {
     return request<any, any>({
       url: `${REQ_BASE}/projects/${id}`,
       method: "delete",
+    });
+  },
+
+  // 批量更新项目排序
+  updateProjectSort(projectIds: number[]) {
+    return request<any, any>({
+      url: `${REQ_BASE}/projects/sort`,
+      method: "put",
+      data: { projectIds },
     });
   },
 
