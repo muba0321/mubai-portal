@@ -164,12 +164,13 @@ const calendarDays = computed(() => {
 
 async function loadCalendar() {
   try {
-    const { data } = await request({
+    const result = await request({
       url: "/api/v1/requirements/calendar/commits",
       method: "get",
       params: { year: year.value, month: month.value },
     });
-    calendarData.value = data?.events || {};
+    // request interceptor already unwraps data, result is the inner data object
+    calendarData.value = result?.events || {};
   } catch (error) {
     console.error("加载日历失败:", error);
   }
