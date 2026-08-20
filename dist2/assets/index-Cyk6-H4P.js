@@ -1,0 +1,1 @@
+import{G as r,M as n,aF as c,aE as p,L as u}from"./vendor-DqyOjQML.js";const d=r({__name:"index",setup(_){const e=c(),t=p(),{params:a,query:o}=e,{path:s}=a;return t.replace({path:"/"+s,query:o}),(m,i)=>(u(),n("div"))}});export{d as default};

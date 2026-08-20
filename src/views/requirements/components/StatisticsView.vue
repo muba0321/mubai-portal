@@ -122,7 +122,7 @@ const assigneeTableData = computed(() => {
 
 async function loadProjects() {
   try {
-    const data = await ProjectAPI.getList("active");
+    const data = await ProjectAPI.getProjects("active");
     projects.value = data || [];
   } catch (error) {
     console.error("加载项目失败:", error);

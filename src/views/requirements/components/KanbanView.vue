@@ -101,32 +101,40 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { Calendar, Paperclip, ChatDotRound } from "@element-plus/icons-vue";
-import { TodoExtendAPI, ProjectAPI, type TodoItem, type Project } from "@/api/requirement";
+import { RequirementAPI, ProjectAPI, type Project } from "@/api/requirement";
 import TodoDetailDialog from "./TodoDetailDialog.vue";
 import { ElMessage } from "element-plus";
 
 const projects = ref<Project[]>([]);
 const selectedProject = ref<number | undefined>();
-const kanbanData = ref<Record<string, TodoItem[]>>({
-  pending: [],
+
+// 与后端 STATUS_CATEGORIES 对齐
+const kanbanData = ref<Record<string, any[]>>({
+  backlog: [],
+  in_review: [],
+  planned: [],
   in_progress: [],
+  testing: [],
   completed: [],
-  cancelled: [],
+  canceled: [],
 });
 const detailVisible = ref(false);
 const selectedTodoId = ref<number>();
-const draggedTodo = ref<TodoItem | null>(null);
+const draggedTodo = ref<any | null>(null);
 
 const statusList = [
-  { value: "pending", label: "待处理", color: "#909399" },
+  { value: "backlog", label: "待处理", color: "#909399" },
+  { value: "in_review", label: "审核中", color: "#e6a23c" },
+  { value: "planned", label: "已排期", color: "#409eff" },
   { value: "in_progress", label: "进行中", color: "#409eff" },
+  { value: "testing", label: "测试中", color: "#909399" },
   { value: "completed", label: "已完成", color: "#67c23a" },
-  { value: "cancelled", label: "已取消", color: "#f56c6c" },
+  { value: "canceled", label: "已取消", color: "#f56c6c" },
 ];
 
 async function loadProjects() {
   try {
-    const data = await ProjectAPI.getList("active");
+    const data = await ProjectAPI.getProjects("active");
     projects.value = data || [];
   } catch (error) {
     console.error("加载项目失败:", error);
@@ -135,19 +143,22 @@ async function loadProjects() {
 
 async function loadKanban() {
   try {
-    const data = await TodoExtendAPI.getKanban(selectedProject.value);
+    const data = await RequirementAPI.getKanban(selectedProject.value);
     kanbanData.value = data || {
-      pending: [],
+      backlog: [],
+      in_review: [],
+      planned: [],
       in_progress: [],
+      testing: [],
       completed: [],
-      cancelled: [],
+      canceled: [],
     };
   } catch (error) {
     console.error("加载看板失败:", error);
   }
 }
 
-function getColumnTodos(status: string): TodoItem[] {
+function getColumnTodos(status: string): any[] {
   return kanbanData.value[status] || [];
 }
 
@@ -155,24 +166,18 @@ function getColumnCount(status: string): number {
   return getColumnTodos(status).length;
 }
 
-function getPriorityType(priority: string): "danger" | "warning" | "success" | "info" {
-  const map: Record<string, "danger" | "warning" | "success" | "info"> = {
-    urgent: "danger",
-    high: "warning",
-    medium: "info",
-    low: "success",
+function getPriorityType(priority: string): "danger" | "warning" | "success" | "info" | "primary" {
+  const map: Record<string, "danger" | "warning" | "success" | "info" | "primary"> = {
+    P0: "danger",
+    P1: "warning",
+    P2: "primary",
+    P3: "info",
   };
   return map[priority] || "info";
 }
 
 function getPriorityLabel(priority: string): string {
-  const map: Record<string, string> = {
-    urgent: "紧急",
-    high: "高",
-    medium: "中",
-    low: "低",
-  };
-  return map[priority] || priority;
+  return priority || "";
 }
 
 function formatDate(dateStr: string): string {
@@ -188,7 +193,7 @@ function isOverdue(dateStr: string): boolean {
   return date < now;
 }
 
-function onDragStart(todo: TodoItem) {
+function onDragStart(todo: any) {
   draggedTodo.value = todo;
 }
 
@@ -196,14 +201,14 @@ function onDragOver(_e: DragEvent) {
   _e.dataTransfer!.dropEffect = "move";
 }
 
-async function onDrop(e: DragEvent, newStatus: "pending" | "in_progress" | "completed" | "cancelled") {
+async function onDrop(e: DragEvent, newStatus: string) {
   if (!draggedTodo.value) return;
 
   const todo = draggedTodo.value;
   if (todo.status === newStatus) return;
 
   try {
-    await TodoExtendAPI.updateTodo(todo.id!, { ...todo, status: newStatus });
+    await RequirementAPI.transition(todo.id, newStatus);
     ElMessage.success("状态已更新");
     await loadKanban();
   } catch (error: any) {
@@ -213,7 +218,7 @@ async function onDrop(e: DragEvent, newStatus: "pending" | "in_progress" | "comp
   }
 }
 
-function openDetail(todo: TodoItem) {
+function openDetail(todo: any) {
   selectedTodoId.value = todo.id;
   detailVisible.value = true;
 }
