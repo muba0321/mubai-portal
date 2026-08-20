@@ -90,7 +90,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { TodoAPI, type TodoItem } from "@/api/requirement";
+import { RequirementAPI, type Requirement } from "@/api/requirement";
 import { ElMessage } from "element-plus";
 import TagSelector from "./TagSelector.vue";
 import AttachmentList from "./AttachmentList.vue";
@@ -106,7 +106,7 @@ const emit = defineEmits<{
   update: [];
 }>();
 
-const todo = ref<TodoItem | null>(null);
+const todo = ref<Requirement | null>(null);
 const todoLoaded = ref(false);
 const editForm = ref({
   title: "",
@@ -120,11 +120,10 @@ const editForm = ref({
 async function loadTodo() {
   if (!props.todoId) return;
 
-  todoLoaded.value = false; // 重置加载状态
+  todoLoaded.value = false;
 
   try {
-    const todos = await TodoAPI.getList();
-    todo.value = todos.find((t) => t.id === props.todoId) || null;
+    todo.value = await RequirementAPI.getRequirement(props.todoId);
 
     if (todo.value) {
       editForm.value = {
@@ -137,10 +136,11 @@ async function loadTodo() {
       };
     }
 
-    todoLoaded.value = true; // 标记加载完成
+    todoLoaded.value = true;
   } catch (error) {
-    console.error("加载任务失败:", error);
-    todoLoaded.value = true; // 即使失败也标记完成，避免无限等待
+    console.error("加载需求失败:", error);
+    ElMessage.error("加载需求失败");
+    todoLoaded.value = true;
   }
 }
 
@@ -148,7 +148,7 @@ async function saveChanges() {
   if (!props.todoId) return;
 
   try {
-    await TodoAPI.update(props.todoId, editForm.value);
+    await RequirementAPI.updateRequirement(props.todoId, editForm.value);
     ElMessage.success("保存成功");
     emit("update");
   } catch (error: any) {

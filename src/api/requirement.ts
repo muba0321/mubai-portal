@@ -94,6 +94,13 @@ export const RequirementAPI = {
   },
 
   // ========== 需求 CRUD ==========
+  getRequirement(id: number) {
+    return request<any, Requirement>({
+      url: `${REQ_BASE}/${id}`,
+      method: "get",
+    });
+  },
+
   getRequirements(params?: {
     projectId?: number;
     status?: string;
