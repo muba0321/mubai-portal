@@ -151,7 +151,21 @@ export const RequirementAPI = {
     });
   },
 
-  // ========== 里程碑 ==========
+  // ========== 日历 ==========
+  getCalendarRequirements(projectId?: number, year?: number, month?: number) {
+    return request<any, any>({
+      url: `${REQ_BASE}/calendar/requirements`,
+      method: "get",
+      params: { projectId, year, month },
+    });
+  },
+
+  getRequirementCommits(reqId: number) {
+    return request<any, any[]>({
+      url: `${REQ_BASE}/${reqId}/commits`,
+      method: "get",
+    });
+  },
   getMilestones(projectId?: number) {
     return request<any, Milestone[]>({
       url: `${REQ_BASE}/milestones`,
