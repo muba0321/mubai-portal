@@ -56,7 +56,7 @@ export const TestCaseAPI = {
     keyword?: string;
   }) {
     return request<any, TestCase[]>({
-      url: TEST_BASE,
+      url: `${TEST_BASE}/`,
       method: "get",
       params,
     });
