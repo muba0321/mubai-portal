@@ -9,6 +9,7 @@ export interface Project {
   name: string;
   description?: string;
   status: "active" | "archived";
+  sort: number;
   createdAt: string;
 }
 
@@ -93,22 +94,16 @@ export const RequirementAPI = {
     });
   },
 
-  updateProjectsSort(order: { id: number; sort: number }[]) {
+  // 批量更新项目排序
+  updateProjectSort(projectIds: number[]) {
     return request<any, any>({
       url: `${REQ_BASE}/projects/sort`,
       method: "put",
-      data: order,
+      data: { projectIds },
     });
   },
 
   // ========== 需求 CRUD ==========
-  getRequirement(id: number) {
-    return request<any, Requirement>({
-      url: `${REQ_BASE}/${id}`,
-      method: "get",
-    });
-  },
-
   getRequirements(params?: {
     projectId?: number;
     status?: string;

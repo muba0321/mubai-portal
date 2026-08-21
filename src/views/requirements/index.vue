@@ -33,16 +33,15 @@
               </div>
             </template>
 
-            <div v-loading="projectLoading" class="project-list" ref="projectListRef">
+            <div v-loading="projectLoading" ref="projectListRef" class="project-list">
               <div
                 v-for="project in projectList"
                 :key="project.id"
-                :data-id="project.id"
                 class="project-item"
                 :class="{ active: selectedProjectId === project.id }"
                 @click="selectProject(project.id!)"
               >
-                <el-icon class="drag-handle" title="拖拽排序"><Rank /></el-icon>
+                <el-icon class="drag-handle"><Rank /></el-icon>
                 <div class="project-info">
                   <span class="project-name">{{ project.name }}</span>
                   <el-tag
@@ -186,12 +185,6 @@
         <el-form-item label="项目名称" required>
           <el-input v-model="projectForm.name" placeholder="输入项目名称" />
         </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="projectForm.status" style="width: 100%">
-            <el-option label="进行中" value="active" />
-            <el-option label="已归档" value="archived" />
-          </el-select>
-        </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="projectForm.description" type="textarea" :rows="3" />
         </el-form-item>
@@ -203,20 +196,10 @@
     </el-dialog>
 
     <!-- 需求对话框 -->
-    <el-dialog v-model="todoDialogVisible" :title="todoForm.id ? '编辑需求' : '新建需求'" width="600px">
+    <el-dialog v-model="todoDialogVisible" title="新建需求" width="600px">
       <el-form :model="todoForm" label-width="80px">
         <el-form-item label="标题" required>
           <el-input v-model="todoForm.title" placeholder="输入需求标题" />
-        </el-form-item>
-        <el-form-item label="所属项目">
-          <el-select v-model="todoForm.projectId" placeholder="请选择项目" style="width: 100%">
-            <el-option
-              v-for="project in projectList"
-              :key="project.id"
-              :label="project.name"
-              :value="project.id"
-            />
-          </el-select>
         </el-form-item>
         <el-form-item label="类型">
           <el-select v-model="todoForm.requirementType" style="width: 100%">
@@ -259,7 +242,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent, onMounted } from "vue";
+import { ref, computed, defineAsyncComponent, onMounted, nextTick } from "vue";
 import {
   List, Grid, Calendar, DataAnalysis, Plus, EditPen, Delete, Rank,
 } from "@element-plus/icons-vue";
@@ -278,10 +261,11 @@ const currentView = ref("list");
 
 // 项目相关
 const projectList = ref<Project[]>([]);
+const projectListRef = ref<HTMLElement>();
 const projectLoading = ref(false);
 const selectedProjectId = ref<number>();
 const projectDialogVisible = ref(false);
-const projectForm = ref<Project>({ id: undefined, name: "", description: "", status: "active", createdAt: "" });
+const projectForm = ref<Project>({ id: undefined, name: "", description: "", status: "active", sort: 0, createdAt: "" });
 
 // 需求相关
 const todoList = ref<Requirement[]>([]);
@@ -298,8 +282,6 @@ const todoForm = ref<Partial<Requirement>>({
 // 详情对话框
 const detailVisible = ref(false);
 const selectedTodoId = ref<number>();
-
-const projectListRef = ref<HTMLElement>();
 
 const currentProjectName = computed(() => {
   return projectList.value.find((p) => p.id === selectedProjectId.value)?.name || "";
@@ -378,29 +360,15 @@ async function handleDeleteProject(id: number) {
   }
 }
 
-function openTodoDialog(requirement?: Requirement) {
-  if (requirement) {
-    todoForm.value = {
-      id: requirement.id,
-      title: requirement.title,
-      description: requirement.description || "",
-      priority: requirement.priority,
-      requirementType: requirement.requirementType,
-      status: requirement.status,
-      projectId: requirement.projectId,
-      assignee: requirement.assignee || "",
-      dueDate: requirement.dueDate || null,
-    };
-  } else {
-    todoForm.value = {
-      title: "",
-      description: "",
-      priority: "P2",
-      requirementType: "task",
-      status: "proposed",
-      projectId: selectedProjectId.value,
-    };
-  }
+function openTodoDialog() {
+  todoForm.value = {
+    title: "",
+    description: "",
+    priority: "P2",
+    requirementType: "task",
+    status: "proposed",
+    projectId: selectedProjectId.value,
+  };
   todoDialogVisible.value = true;
 }
 
@@ -409,23 +377,14 @@ async function saveTodo() {
     ElMessage.warning("请输入需求标题");
     return;
   }
-  if (!todoForm.value.projectId) {
-    ElMessage.warning("请选择所属项目");
-    return;
-  }
 
   try {
-    if (todoForm.value.id) {
-      await RequirementAPI.updateRequirement(todoForm.value.id, todoForm.value);
-      ElMessage.success("需求已更新");
-    } else {
-      await RequirementAPI.createRequirement(todoForm.value);
-      ElMessage.success("需求已创建");
-    }
+    await RequirementAPI.createRequirement(todoForm.value as any);
+    ElMessage.success("需求已创建");
     todoDialogVisible.value = false;
     loadTodos();
   } catch (error: any) {
-    ElMessage.error(error.message || "保存失败");
+    ElMessage.error(error.message || "创建失败");
   }
 }
 
@@ -520,37 +479,51 @@ function isOverdue(dateStr: string) {
   return new Date(dateStr) < new Date();
 }
 
-// 初始化拖拽排序
-onMounted(() => {
-  if (!projectListRef.value) return;
-  Sortable.create(projectListRef.value, {
-    handle: ".drag-handle",
-    animation: 150,
-    ghostClass: "sortable-ghost",
-    chosenClass: "sortable-chosen",
-    dragClass: "sortable-drag",
-    onEnd: async (evt) => {
-      const newOrder = Array.from(evt.to.children)
-        .filter((item) => item.classList.contains("project-item"))
-        .map((item, index) => ({
-          id: parseInt((item as HTMLElement).getAttribute("data-id")!),
-          sort: index,
-        }));
+// 初始化加载
+loadProjects();
 
+// 拖拽排序
+let projectSortable: Sortable | null = null;
+
+async function initProjectSortable() {
+  await nextTick();
+  if (!projectListRef.value) return;
+
+  if (projectSortable) {
+    projectSortable.destroy();
+  }
+
+  projectSortable = Sortable.create(projectListRef.value, {
+    animation: 150,
+    handle: ".drag-handle",
+    ghostClass: "sortable-ghost",
+    onEnd: async (evt) => {
+      const { oldIndex, newIndex } = evt;
+      if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+
+      // 更新本地列表顺序
+      const item = projectList.value.splice(oldIndex, 1)[0];
+      projectList.value.splice(newIndex, 0, item);
+
+      // 调用 API 更新排序
       try {
-        await RequirementAPI.updateProjectsSort(newOrder);
-        ElMessage.success("排序已更新");
-        loadProjects();
-      } catch {
-        ElMessage.error("排序更新失败");
+        const projectIds = projectList.value.map(p => p.id);
+        await RequirementAPI.updateProjectSort(projectIds);
+      } catch (error: any) {
+        ElMessage.error(error.message || "排序更新失败");
+        // 恢复原顺序
         loadProjects();
       }
     },
   });
-});
+}
 
-// 初始化加载
-loadProjects();
+// 在项目加载后初始化拖拽
+const origLoadProjects = loadProjects;
+loadProjects = async () => {
+  await origLoadProjects();
+  initProjectSortable();
+};
 </script>
 
 <style scoped>
@@ -593,8 +566,8 @@ loadProjects();
 
 .project-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
   padding: 12px;
   cursor: pointer;
   border-radius: 6px;
@@ -612,13 +585,9 @@ loadProjects();
 
   .drag-handle {
     cursor: grab;
-    color: #909399;
+    color: #c0c4cc;
+    margin-right: 8px;
     font-size: 16px;
-    flex-shrink: 0;
-
-    &:hover {
-      color: #409eff;
-    }
 
     &:active {
       cursor: grabbing;
@@ -626,7 +595,6 @@ loadProjects();
   }
 
   .project-info {
-    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -641,22 +609,13 @@ loadProjects();
   .project-actions {
     display: flex;
     gap: 4px;
-    flex-shrink: 0;
   }
 }
 
+/* 拖拽排序样式 */
 .sortable-ghost {
   opacity: 0.4;
-  background: #ecf5ff;
-}
-
-.sortable-chosen {
-  background: #f0f9eb;
-}
-
-.sortable-drag {
-  opacity: 0.8;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  background: #f0f9ff;
 }
 
 .todo-table {
