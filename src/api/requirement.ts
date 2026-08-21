@@ -93,6 +93,14 @@ export const RequirementAPI = {
     });
   },
 
+  updateProjectsSort(order: { id: number; sort: number }[]) {
+    return request<any, any>({
+      url: `${REQ_BASE}/projects/sort`,
+      method: "put",
+      data: order,
+    });
+  },
+
   // ========== 需求 CRUD ==========
   getRequirement(id: number) {
     return request<any, Requirement>({

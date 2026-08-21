@@ -33,14 +33,16 @@
               </div>
             </template>
 
-            <div v-loading="projectLoading" class="project-list">
+            <div v-loading="projectLoading" class="project-list" ref="projectListRef">
               <div
                 v-for="project in projectList"
                 :key="project.id"
+                :data-id="project.id"
                 class="project-item"
                 :class="{ active: selectedProjectId === project.id }"
                 @click="selectProject(project.id!)"
               >
+                <el-icon class="drag-handle" title="拖拽排序"><Rank /></el-icon>
                 <div class="project-info">
                   <span class="project-name">{{ project.name }}</span>
                   <el-tag
@@ -241,12 +243,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent } from "vue";
+import { ref, computed, defineAsyncComponent, onMounted } from "vue";
 import {
-  List, Grid, Calendar, DataAnalysis, Plus, EditPen, Delete,
+  List, Grid, Calendar, DataAnalysis, Plus, EditPen, Delete, Rank,
 } from "@element-plus/icons-vue";
 import RequirementAPI, { type Project, type Requirement } from "@/api/requirement";
 import { ElMessage, ElMessageBox } from "element-plus";
+import Sortable from "sortablejs";
 
 // 懒加载重组件
 const KanbanView = defineAsyncComponent(() => import("./components/KanbanView.vue"));
@@ -279,6 +282,8 @@ const todoForm = ref<Partial<Requirement>>({
 // 详情对话框
 const detailVisible = ref(false);
 const selectedTodoId = ref<number>();
+
+const projectListRef = ref<HTMLElement>();
 
 const currentProjectName = computed(() => {
   return projectList.value.find((p) => p.id === selectedProjectId.value)?.name || "";
@@ -476,6 +481,35 @@ function isOverdue(dateStr: string) {
   return new Date(dateStr) < new Date();
 }
 
+// 初始化拖拽排序
+onMounted(() => {
+  if (!projectListRef.value) return;
+  Sortable.create(projectListRef.value, {
+    handle: ".drag-handle",
+    animation: 150,
+    ghostClass: "sortable-ghost",
+    chosenClass: "sortable-chosen",
+    dragClass: "sortable-drag",
+    onEnd: async (evt) => {
+      const newOrder = Array.from(evt.to.children)
+        .filter((item) => item.classList.contains("project-item"))
+        .map((item, index) => ({
+          id: parseInt((item as HTMLElement).getAttribute("data-id")!),
+          sort: index,
+        }));
+
+      try {
+        await RequirementAPI.updateProjectsSort(newOrder);
+        ElMessage.success("排序已更新");
+        loadProjects();
+      } catch {
+        ElMessage.error("排序更新失败");
+        loadProjects();
+      }
+    },
+  });
+});
+
 // 初始化加载
 loadProjects();
 </script>
@@ -520,8 +554,8 @@ loadProjects();
 
 .project-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 12px;
   cursor: pointer;
   border-radius: 6px;
@@ -537,7 +571,23 @@ loadProjects();
     border-left: 3px solid #409eff;
   }
 
+  .drag-handle {
+    cursor: grab;
+    color: #909399;
+    font-size: 16px;
+    flex-shrink: 0;
+
+    &:hover {
+      color: #409eff;
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
   .project-info {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -552,7 +602,22 @@ loadProjects();
   .project-actions {
     display: flex;
     gap: 4px;
+    flex-shrink: 0;
   }
+}
+
+.sortable-ghost {
+  opacity: 0.4;
+  background: #ecf5ff;
+}
+
+.sortable-chosen {
+  background: #f0f9eb;
+}
+
+.sortable-drag {
+  opacity: 0.8;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
 .todo-table {
