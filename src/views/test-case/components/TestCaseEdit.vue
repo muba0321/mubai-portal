@@ -131,9 +131,23 @@
       <!-- 关联需求 -->
       <el-divider content-position="left">关联需求</el-divider>
       <el-form-item label="需求">
-        <el-select v-model="selectedReqIds" multiple placeholder="选择关联的需求" style="width: 100%">
-          <el-option v-for="req in requirements" :key="req.id" :label="req.title" :value="req.id" />
+        <el-select
+          v-model="selectedReqIds"
+          multiple
+          placeholder="请先选择项目，再选择需求"
+          :disabled="!form.projectId"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="req in filteredRequirements"
+            :key="req.id"
+            :label="req.title"
+            :value="req.id"
+          />
         </el-select>
+        <div v-if="!form.projectId" style="font-size: 12px; color: #909399; margin-top: 4px">
+          请先选择所属项目
+        </div>
       </el-form-item>
     </el-form>
 
@@ -178,6 +192,12 @@ const form = ref<Partial<TestCase>>({
 const apiHeadersText = ref("");
 const manualSteps = ref<{ step: number; action: string; expected: string }[]>([]);
 const selectedReqIds = ref<number[]>([]);
+
+// 根据所选项目过滤需求
+const filteredRequirements = computed(() => {
+  if (!form.value.projectId) return [];
+  return props.requirements.filter((r) => r.projectId === form.value.projectId);
+});
 
 function addStep() {
   manualSteps.value.push({
@@ -238,6 +258,13 @@ async function handleSave() {
     saving.value = false;
   }
 }
+
+// 当项目变化时，清空已选需求
+watch(() => form.value.projectId, (newProjectId, oldProjectId) => {
+  if (newProjectId !== oldProjectId) {
+    selectedReqIds.value = [];
+  }
+});
 
 // 加载已有用例数据
 watch(() => props.caseId, async (newId) => {
