@@ -193,6 +193,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/ops/Backup.vue"),
         meta: { title: "服务管理", icon: "el-icon-DocumentCopy" },
       },
+      {
+        path: "test",
+        name: "TestCaseManage",
+        component: () => import("@/views/test-case/index.vue"),
+        meta: { title: "测试管理", icon: "el-icon-DocumentChecked" },
+      },
     ],
   },
 
