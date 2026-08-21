@@ -159,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, nextTick } from "vue";
 import { Plus } from "@element-plus/icons-vue";
 import { TestCaseAPI, type TestCase } from "@/api/test-case";
 import { type Project, type Requirement } from "@/api/requirement";
@@ -178,15 +178,21 @@ const emit = defineEmits<{
 }>();
 
 const saving = ref(false);
-const form = ref<Partial<TestCase>>({
+const form = ref({
   title: "",
   description: "",
-  testType: "manual",
-  priority: "P2",
-  status: "draft",
-  projectId: undefined,
-  apiMethod: "GET",
-  apiExpectedStatus: 200,
+  testType: "manual" as string,
+  priority: "P2" as string,
+  status: "draft" as string,
+  projectId: undefined as number | undefined,
+  apiMethod: "GET" as string,
+  apiUrl: "",
+  apiHeaders: undefined as Record<string, string> | undefined,
+  apiBody: "",
+  apiExpectedStatus: 200 as number,
+  apiExpectedBody: "",
+  manualSteps: undefined as any[] | undefined,
+  preconditions: "",
 });
 
 const apiHeadersText = ref("");
@@ -266,11 +272,11 @@ watch(() => form.value.projectId, (newProjectId, oldProjectId) => {
   }
 });
 
-// 加载已有用例数据
-watch([() => props.caseId, () => props.modelValue], async ([newId, isOpen]) => {
-  if (newId && isOpen) {
+// 加载已有用例数据 - 监听对话框打开
+watch(() => props.modelValue, async (isOpen) => {
+  if (isOpen && props.caseId) {
     try {
-      const detail = await TestCaseAPI.getDetail(newId);
+      const detail = await TestCaseAPI.getDetail(props.caseId);
       // 逐个赋值确保响应式更新
       form.value.title = detail.title || "";
       form.value.description = detail.description || "";
@@ -291,31 +297,37 @@ watch([() => props.caseId, () => props.modelValue], async ([newId, isOpen]) => {
       manualSteps.value = detail.manualSteps || [];
 
       // 加载关联需求
-      const reqs = await TestCaseAPI.getRequirements(newId);
+      const reqs = await TestCaseAPI.getRequirements(props.caseId);
       selectedReqIds.value = reqs.map((r: any) => r.id);
+
+      await nextTick();
     } catch (err) {
       console.error("加载用例失败:", err);
     }
-  } else if (!newId && isOpen) {
-    // 重置表单
-    form.value.title = "";
-    form.value.description = "";
-    form.value.testType = "manual";
-    form.value.priority = "P2";
-    form.value.status = "draft";
-    form.value.projectId = undefined;
-    form.value.apiMethod = "GET";
-    form.value.apiUrl = "";
-    form.value.apiHeaders = undefined;
-    form.value.apiBody = "";
-    form.value.apiExpectedStatus = 200;
-    form.value.apiExpectedBody = "";
-    form.value.manualSteps = undefined;
-    form.value.preconditions = "";
+  } else if (isOpen && !props.caseId) {
+    // 新建用例 - 重置表单
+    form.value = {
+      title: "",
+      description: "",
+      testType: "manual",
+      priority: "P2",
+      status: "draft",
+      projectId: undefined,
+      apiMethod: "GET",
+      apiUrl: "",
+      apiHeaders: undefined,
+      apiBody: "",
+      apiExpectedStatus: 200,
+      apiExpectedBody: "",
+      manualSteps: undefined,
+      preconditions: "",
+    };
 
     apiHeadersText.value = "";
     manualSteps.value = [];
     selectedReqIds.value = [];
+
+    await nextTick();
   }
 });
 </script>
