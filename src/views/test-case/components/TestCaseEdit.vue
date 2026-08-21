@@ -267,45 +267,52 @@ watch(() => form.value.projectId, (newProjectId, oldProjectId) => {
 });
 
 // 加载已有用例数据
-watch(() => props.caseId, async (newId) => {
-  if (newId && props.modelValue) {
+watch([() => props.caseId, () => props.modelValue], async ([newId, isOpen]) => {
+  if (newId && isOpen) {
     try {
       const detail = await TestCaseAPI.getDetail(newId);
-      form.value = {
-        title: detail.title,
-        description: detail.description,
-        testType: detail.testType,
-        priority: detail.priority,
-        status: detail.status,
-        projectId: detail.projectId,
-        apiMethod: detail.apiMethod,
-        apiUrl: detail.apiUrl,
-        apiHeaders: detail.apiHeaders,
-        apiBody: detail.apiBody,
-        apiExpectedStatus: detail.apiExpectedStatus,
-        apiExpectedBody: detail.apiExpectedBody,
-        manualSteps: detail.manualSteps,
-        preconditions: detail.preconditions,
-      };
+      // 逐个赋值确保响应式更新
+      form.value.title = detail.title || "";
+      form.value.description = detail.description || "";
+      form.value.testType = detail.testType || "manual";
+      form.value.priority = detail.priority || "P2";
+      form.value.status = detail.status || "draft";
+      form.value.projectId = detail.projectId;
+      form.value.apiMethod = detail.apiMethod || "GET";
+      form.value.apiUrl = detail.apiUrl || "";
+      form.value.apiHeaders = detail.apiHeaders;
+      form.value.apiBody = detail.apiBody || "";
+      form.value.apiExpectedStatus = detail.apiExpectedStatus || 200;
+      form.value.apiExpectedBody = detail.apiExpectedBody || "";
+      form.value.manualSteps = detail.manualSteps;
+      form.value.preconditions = detail.preconditions || "";
+
       apiHeadersText.value = detail.apiHeaders ? JSON.stringify(detail.apiHeaders, null, 2) : "";
       manualSteps.value = detail.manualSteps || [];
 
       // 加载关联需求
       const reqs = await TestCaseAPI.getRequirements(newId);
       selectedReqIds.value = reqs.map((r: any) => r.id);
-    } catch {}
-  } else if (!newId) {
+    } catch (err) {
+      console.error("加载用例失败:", err);
+    }
+  } else if (!newId && isOpen) {
     // 重置表单
-    form.value = {
-      title: "",
-      description: "",
-      testType: "manual",
-      priority: "P2",
-      status: "draft",
-      projectId: undefined,
-      apiMethod: "GET",
-      apiExpectedStatus: 200,
-    };
+    form.value.title = "";
+    form.value.description = "";
+    form.value.testType = "manual";
+    form.value.priority = "P2";
+    form.value.status = "draft";
+    form.value.projectId = undefined;
+    form.value.apiMethod = "GET";
+    form.value.apiUrl = "";
+    form.value.apiHeaders = undefined;
+    form.value.apiBody = "";
+    form.value.apiExpectedStatus = 200;
+    form.value.apiExpectedBody = "";
+    form.value.manualSteps = undefined;
+    form.value.preconditions = "";
+
     apiHeadersText.value = "";
     manualSteps.value = [];
     selectedReqIds.value = [];
