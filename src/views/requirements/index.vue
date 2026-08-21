@@ -186,6 +186,12 @@
         <el-form-item label="项目名称" required>
           <el-input v-model="projectForm.name" placeholder="输入项目名称" />
         </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="projectForm.status" style="width: 100%">
+            <el-option label="进行中" value="active" />
+            <el-option label="已归档" value="archived" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="projectForm.description" type="textarea" :rows="3" />
         </el-form-item>
@@ -197,10 +203,20 @@
     </el-dialog>
 
     <!-- 需求对话框 -->
-    <el-dialog v-model="todoDialogVisible" title="新建需求" width="600px">
+    <el-dialog v-model="todoDialogVisible" :title="todoForm.id ? '编辑需求' : '新建需求'" width="600px">
       <el-form :model="todoForm" label-width="80px">
         <el-form-item label="标题" required>
           <el-input v-model="todoForm.title" placeholder="输入需求标题" />
+        </el-form-item>
+        <el-form-item label="所属项目">
+          <el-select v-model="todoForm.projectId" placeholder="请选择项目" style="width: 100%">
+            <el-option
+              v-for="project in projectList"
+              :key="project.id"
+              :label="project.name"
+              :value="project.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="类型">
           <el-select v-model="todoForm.requirementType" style="width: 100%">
@@ -362,15 +378,29 @@ async function handleDeleteProject(id: number) {
   }
 }
 
-function openTodoDialog() {
-  todoForm.value = {
-    title: "",
-    description: "",
-    priority: "P2",
-    requirementType: "task",
-    status: "proposed",
-    projectId: selectedProjectId.value,
-  };
+function openTodoDialog(requirement?: Requirement) {
+  if (requirement) {
+    todoForm.value = {
+      id: requirement.id,
+      title: requirement.title,
+      description: requirement.description || "",
+      priority: requirement.priority,
+      requirementType: requirement.requirementType,
+      status: requirement.status,
+      projectId: requirement.projectId,
+      assignee: requirement.assignee || "",
+      dueDate: requirement.dueDate || null,
+    };
+  } else {
+    todoForm.value = {
+      title: "",
+      description: "",
+      priority: "P2",
+      requirementType: "task",
+      status: "proposed",
+      projectId: selectedProjectId.value,
+    };
+  }
   todoDialogVisible.value = true;
 }
 
@@ -379,14 +409,23 @@ async function saveTodo() {
     ElMessage.warning("请输入需求标题");
     return;
   }
+  if (!todoForm.value.projectId) {
+    ElMessage.warning("请选择所属项目");
+    return;
+  }
 
   try {
-    await RequirementAPI.createRequirement(todoForm.value as any);
-    ElMessage.success("需求已创建");
+    if (todoForm.value.id) {
+      await RequirementAPI.updateRequirement(todoForm.value.id, todoForm.value);
+      ElMessage.success("需求已更新");
+    } else {
+      await RequirementAPI.createRequirement(todoForm.value);
+      ElMessage.success("需求已创建");
+    }
     todoDialogVisible.value = false;
     loadTodos();
   } catch (error: any) {
-    ElMessage.error(error.message || "创建失败");
+    ElMessage.error(error.message || "保存失败");
   }
 }
 
