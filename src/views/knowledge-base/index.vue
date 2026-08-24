@@ -28,7 +28,7 @@
       <el-col :span="6">
         <el-card shadow="never" style="height: 100%">
           <template #header><span>知识库目录</span></template>
-          <div style="overflow-y: auto; max-height: calc(100vh - 240px)">
+          <div style="overflow-y: auto; overflow-x: auto; max-height: calc(100vh - 240px); min-width: 100%">
             <tree-node
               v-for="node in treeData"
               :key="node.name || node.path"

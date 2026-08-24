@@ -121,8 +121,6 @@ function getExtTagType(ext?: string) {
   font-size: 13px;
   font-weight: 500;
   color: #303133;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -165,8 +163,6 @@ function getExtTagType(ext?: string) {
 
 .file-name {
   font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
 }
