@@ -25,10 +25,10 @@
 
     <el-row :gutter="16" style="height: calc(100vh - 160px)">
       <!-- 左侧递归目录树 -->
-      <el-col :span="6">
+      <el-col :span="6" style="height: 100%; overflow-y: auto">
         <el-card shadow="never" style="height: 100%">
           <template #header><span>知识库目录</span></template>
-          <div style="overflow-y: auto; overflow-x: auto; max-height: calc(100vh - 240px); min-width: 100%">
+          <div style="overflow-y: auto; overflow-x: auto; min-width: 100%">
             <tree-node
               v-for="node in treeData"
               :key="node.name || node.path"
@@ -42,8 +42,8 @@
       </el-col>
 
       <!-- 右侧内容区 -->
-      <el-col :span="18">
-        <el-card shadow="never" style="height: 100%">
+      <el-col :span="18" style="height: 100%; overflow-y: auto">
+        <el-card shadow="never" style="min-height: 100%">
           <!-- 搜索结果 -->
           <div v-if="searchResults.length > 0" style="padding: 10px 0">
             <div style="margin-bottom: 12px; font-weight: 600">搜索结果：{{ searchResults.length }} 条</div>
