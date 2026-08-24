@@ -199,6 +199,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/test-case/index.vue"),
         meta: { title: "测试管理", icon: "el-icon-DocumentChecked" },
       },
+      {
+        path: "knowledge",
+        name: "KnowledgeManage",
+        component: () => import("@/views/knowledge-base/index.vue"),
+        meta: { title: "知识管理", icon: "el-icon-Reading" },
+      },
     ],
   },
 
