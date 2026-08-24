@@ -8,7 +8,7 @@
           <span class="full-hash">{{ detail.fullHash }}</span>
         </el-descriptions-item>
         <el-descriptions-item label="作者">{{ detail.author }}</el-descriptions-item>
-        <el-descriptions-item label="日期">{{ detail.date }}</el-descriptions-item>
+        <el-descriptions-item label="日期">{{ formatDate(detail.date) }}</el-descriptions-item>
         <el-descriptions-item label="主题" :span="2">{{ detail.subject }}</el-descriptions-item>
         <el-descriptions-item v-if="detail.body" label="详情" :span="2">
           <pre class="commit-body">{{ detail.body }}</pre>
@@ -64,6 +64,15 @@ const props = defineProps<{
 
 const detail = ref<CommitDetail | null>(null);
 const loading = ref(true);
+
+// UTC 转北京时间 (UTC+8)
+function formatDate(utcStr: string) {
+  if (!utcStr) return "";
+  const date = new Date(utcStr);
+  date.setHours(date.getHours() + 8);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 async function loadDetail() {
   loading.value = true;

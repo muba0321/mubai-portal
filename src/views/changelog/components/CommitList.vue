@@ -17,7 +17,7 @@
         v-for="commit in commits"
         :key="commit.fullHash"
         :type="typeColor(commit.type)"
-        :timestamp="commit.date"
+        :timestamp="formatBeijingTime(commit.date)"
         placement="top"
       >
         <div class="commit-item" @click="$emit('view-detail', commit.fullHash)">
@@ -72,6 +72,16 @@ function typeColor(type: string) {
     chore: "info",
   };
   return map[type] || "info";
+}
+
+// UTC 转北京时间 (UTC+8)
+function formatBeijingTime(utcStr: string) {
+  if (!utcStr) return "";
+  const date = new Date(utcStr);
+  // 加 8 小时转为北京时间
+  date.setHours(date.getHours() + 8);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function debounceLoad() {
