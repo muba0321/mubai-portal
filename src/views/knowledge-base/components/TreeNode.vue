@@ -49,7 +49,7 @@ defineEmits<{
   openFile: [node: any];
 }>();
 
-const isExpanded = ref(props.depth < 1);
+const isExpanded = ref(false);
 
 function toggleExpand() {
   isExpanded.value = !isExpanded.value;
