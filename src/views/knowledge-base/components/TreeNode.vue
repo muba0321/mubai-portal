@@ -8,7 +8,6 @@
         <span class="folder-name">{{ node.name }}</span>
         <el-tag v-if="node.fileCount" size="small" type="info" style="margin-left: auto">{{ node.fileCount }}</el-tag>
       </div>
-      <!-- 递归子节点 -->
       <div v-if="isExpanded" class="folder-children">
         <tree-node
           v-for="child in node.children"
@@ -29,15 +28,16 @@
       :style="{ paddingLeft: (depth * 16 + 32) + 'px' }"
       @click="$emit('openFile', node)"
     >
-      <el-icon><Document /></el-icon>
+      <el-icon :class="getFileIconClass(node.fileExt)"><component :is="getFileIcon(node.fileExt)" /></el-icon>
       <span class="file-name">{{ node.title || node.name }}</span>
+      <el-tag v-if="node.fileExt" size="small" :type="getExtTagType(node.fileExt)" style="margin-left: auto; flex-shrink: 0">{{ node.fileExt.replace('.', '') }}</el-tag>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ArrowRight, Folder, Document } from "@element-plus/icons-vue";
+import { ArrowRight, Folder, Document, DataLine, Setting, Files } from "@element-plus/icons-vue";
 
 const props = defineProps<{
   node: any;
@@ -49,10 +49,35 @@ defineEmits<{
   openFile: [node: any];
 }>();
 
-const isExpanded = ref(props.depth < 1); // 默认展开第一层
+const isExpanded = ref(props.depth < 1);
 
 function toggleExpand() {
   isExpanded.value = !isExpanded.value;
+}
+
+function getFileIcon(ext?: string) {
+  if (!ext) return Document;
+  const e = ext.toLowerCase();
+  if (e === ".md") return Document;
+  if (e === ".sh" || e === ".py" || e === ".js" || e === ".ts") return DataLine;
+  if (e === ".yml" || e === ".yaml" || e === ".json" || e === ".toml" || e === ".xml") return Setting;
+  if (e === ".sql" || e === ".csv") return Files;
+  return Document;
+}
+
+function getFileIconClass(ext?: string) {
+  const e = ext?.toLowerCase() || "";
+  if (e === ".sh" || e === ".py") return "icon-script";
+  if (e === ".yml" || e === ".yaml" || e === ".json") return "icon-config";
+  return "";
+}
+
+function getExtTagType(ext?: string) {
+  const e = ext?.toLowerCase() || "";
+  if (e === ".md") return "";
+  if (e === ".sh" || e === ".py" || e === ".js" || e === ".ts") return "success";
+  if (e === ".yml" || e === ".yaml" || e === ".json") return "warning";
+  return "info";
 }
 </script>
 
@@ -101,10 +126,6 @@ function toggleExpand() {
   white-space: nowrap;
 }
 
-.folder-children {
-  /* 递归子节点自动缩进 */
-}
-
 .file-item {
   display: flex;
   align-items: center;
@@ -134,10 +155,19 @@ function toggleExpand() {
   color: #409eff;
 }
 
+.icon-script .el-icon {
+  color: #67c23a;
+}
+
+.icon-config .el-icon {
+  color: #e6a23c;
+}
+
 .file-name {
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
 }
 </style>

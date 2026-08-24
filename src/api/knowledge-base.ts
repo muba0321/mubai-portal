@@ -19,6 +19,7 @@ export interface KbFileItem {
   subCategory: string;
   size: number;
   wordCount: number;
+  fileExt?: string;
   modifiedAt: string;
 }
 
@@ -32,6 +33,7 @@ export interface KbFileContent {
   content: string;
   size: number;
   wordCount: number;
+  fileExt?: string;
   modifiedAt: string;
 }
 

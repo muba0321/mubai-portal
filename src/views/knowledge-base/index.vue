@@ -65,9 +65,13 @@
               </el-button>
               <h3 style="margin: 0">{{ fileContent.title }}</h3>
               <el-tag size="small">{{ fileContent.category }}</el-tag>
+              <el-tag v-if="fileContent.fileExt" size="small" type="success">{{ fileContent.fileExt }}</el-tag>
               <span style="font-size: 12px; color: #909399">{{ fileContent.wordCount }} 字</span>
             </div>
-            <div class="markdown-body" v-html="renderedContent"></div>
+            <!-- Markdown 渲染 -->
+            <div v-if="isMarkdown" class="markdown-body" v-html="renderedContent"></div>
+            <!-- 代码展示 -->
+            <pre v-else class="code-body"><code>{{ fileContent.content }}</code></pre>
           </div>
 
           <!-- 空状态 -->
@@ -99,6 +103,11 @@ const selectedFile = ref("");
 const renderedContent = computed(() => {
   if (!fileContent.value?.content) return "";
   return marked(fileContent.value.content) as string;
+});
+
+const isMarkdown = computed(() => {
+  const ext = fileContent.value?.fileExt?.toLowerCase();
+  return ext === ".md";
 });
 
 async function loadTree() {
@@ -244,5 +253,19 @@ onMounted(() => {
   padding-left: 16px;
   color: #606266;
   margin: 16px 0;
+}
+
+.code-body {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-family: "Courier New", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 70vh;
 }
 </style>
