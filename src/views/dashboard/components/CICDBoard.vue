@@ -22,7 +22,7 @@
         <div v-for="stage in topStages" :key="stage.id"
              class="stage-node"
              :class="nodeClass(stage)"
-             :style="{ '--stage-color': stage.color }"
+             :style="{ borderColor: stage.color + '40', boxShadow: '0 0 20px ' + stage.color + '20' }"
              @click="goToStage(stage)">
           <div class="stage-icon-wrapper">
             <div class="icon-bg"></div>
@@ -47,7 +47,7 @@
         <div v-for="stage in bottomStages" :key="stage.id"
              class="stage-node"
              :class="nodeClass(stage)"
-             :style="{ '--stage-color': stage.color }"
+             :style="{ borderColor: stage.color + '40', boxShadow: '0 0 20px ' + stage.color + '20' }"
              @click="goToStage(stage)">
           <div class="stage-icon-wrapper">
             <div class="icon-bg"></div>
@@ -74,7 +74,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Connection, Refresh } from '@element-plus/icons-vue'
-import { DashboardAPI } from '@/api/dashboard'
+import DashboardAPI from '@/api/dashboard'
 
 const router = useRouter()
 const loading = ref(false)
@@ -232,11 +232,11 @@ function goToStage(stage: any) {
 
 .stage-node:hover {
   transform: translateY(-6px) scale(1.03);
-  border-color: var(--stage-color, rgba(102, 126, 234, 0.6));
+  border-color: rgba(102, 126, 234, 0.6);
   box-shadow:
     0 12px 32px rgba(0, 0, 0, 0.3),
-    0 0 0 1px var(--stage-color, rgba(102, 126, 234, 0.4)),
-    0 0 24px var(--stage-color, rgba(102, 126, 234, 0.2));
+    0 0 0 1px rgba(102, 126, 234, 0.4),
+    0 0 24px rgba(102, 126, 234, 0.2);
 }
 
 .stage-node.completed {
@@ -266,7 +266,7 @@ function goToStage(stage: any) {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: var(--stage-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   opacity: 0.2;
   animation: breathe 3s ease-in-out infinite;
 }
@@ -316,8 +316,8 @@ function goToStage(stage: any) {
 .stage-progress-text {
   font-size: 20px;
   font-weight: 700;
-  color: var(--stage-color, #667eea);
-  text-shadow: 0 0 12px var(--stage-color, rgba(102, 126, 234, 0.5));
+  color: #667eea;
+  text-shadow: 0 0 12px rgba(102, 126, 234, 0.5);
 }
 
 .progress-ring {
@@ -332,7 +332,7 @@ function goToStage(stage: any) {
 
 .progress-bar {
   fill: none;
-  stroke: var(--stage-color, #667eea);
+  stroke: #667eea;
   stroke-width: 3;
   stroke-linecap: round;
   transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1);
