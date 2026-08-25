@@ -102,12 +102,28 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
+  // CICD 看板
+  {
+    path: "/cicd",
+    component: Layout,
+    redirect: "/cicd/board",
+    meta: { title: "CICD 看板", icon: "el-icon-Connection", sort: 5 },
+    children: [
+      {
+        path: "board",
+        name: "CICDBoard",
+        component: () => import("@/views/dashboard/CICDPage.vue"),
+        meta: { title: "CICD 看板", icon: "el-icon-Connection" },
+      },
+    ],
+  },
+
   // 需求管理
   {
     path: "/todo",
     component: Layout,
     redirect: "/todo/index",
-    meta: { title: "需求管理", icon: "el-icon-List" },
+    meta: { title: "需求管理", icon: "el-icon-List", sort: 6 },
     children: [
       {
         path: "index",
