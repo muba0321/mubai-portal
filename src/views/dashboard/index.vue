@@ -7,6 +7,9 @@
       </div>
     </div>
 
+    <!-- CICD 流程阶段看板 -->
+    <CICDBoard />
+
     <div class="feature-grid">
       <div v-for="item in featureCards" :key="item.title" class="feature-card" @click="handleCardClick(item)">
         <div class="feature-icon" :style="{ backgroundColor: item.bgColor }">
@@ -177,6 +180,7 @@ import { Monitor, DataAnalysis, Document, Bell, Setting, TrendCharts, User, Edit
 import DashboardAPI from "@/api/dashboard";
 import { RequirementAPI, type Requirement } from "@/api/requirement";
 import { useUserStore } from "@/store";
+import CICDBoard from "./components/CICDBoard.vue";
 import { type CommonLink } from "@/api/dashboard";
 
 defineOptions({ name: "Dashboard" });

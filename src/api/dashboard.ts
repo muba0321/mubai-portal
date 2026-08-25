@@ -28,6 +28,19 @@ export interface RecentVisit {
   visitedAt: string;
 }
 
+export interface CICDStage {
+  id: number;
+  name: string;
+  icon: string;
+  color: string;
+  order: number;
+  description: string;
+  totalRequirements: number;
+  completedRequirements: number;
+  progress: number;
+  milestones: any[];
+}
+
 const DashboardAPI = {
   /** 获取系统状态 */
   getSystemStatus() {
@@ -93,6 +106,14 @@ const DashboardAPI = {
     return request({
       url: `${DASHBOARD_BASE_URL}/common-links/auto-categorize`,
       method: "post",
+    });
+  },
+
+  /** 获取 CICD 流程阶段进度 */
+  getCICDStages() {
+    return request<any, { stages: CICDStage[] }>({
+      url: `${DASHBOARD_BASE_URL}/cicd-stages`,
+      method: "get",
     });
   },
 };
