@@ -36,24 +36,15 @@ pipeline {
             steps {
                 echo '=== 部署前端 ==='
                 sh '''
-                    # 打包 dist
+                    # deploy-agent 就在 215 上，直接执行 Docker 命令
                     cd ${APP_DIR}/workspace/sre-portal-frontend
-                    tar -czf /tmp/fe-deploy.tar.gz -C dist .
 
-                    # SSH 到 215 部署
-                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "mkdir -p /tmp/fe-deploy && cd /tmp/fe-deploy && rm -rf * && tar -xzf /tmp/fe-deploy.tar.gz"
-                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "docker exec sre-portal-frontend sh -c 'rm -rf /usr/share/nginx/html/assets'"
-                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "docker exec sre-portal-frontend mkdir -p /usr/share/nginx/html/assets"
+                    # 清理旧文件
+                    docker exec sre-portal-frontend sh -c 'rm -rf /usr/share/nginx/html/assets /usr/share/nginx/html/index.html'
 
-                    # 逐个复制文件
-                    cd /tmp/fe-deploy
-                    for f in assets/*; do
-                        ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "docker cp /tmp/fe-deploy/$f sre-portal-frontend:/usr/share/nginx/html/assets/$(basename $f)"
-                    done
-                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "docker cp /tmp/fe-deploy/index.html sre-portal-frontend:/usr/share/nginx/html/index.html"
+                    # 复制 dist 到容器
+                    docker cp dist/. sre-portal-frontend:/usr/share/nginx/html/
 
-                    # 清理
-                    ssh -o StrictHostKeyChecking=no root@${DEPLOY_HOST} "rm -rf /tmp/fe-deploy /tmp/fe-deploy.tar.gz"
                     echo "Frontend deployed!"
                 '''
             }
